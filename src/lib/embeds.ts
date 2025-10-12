@@ -35,7 +35,7 @@ export function resolveEmbed(rawUrl: string): ResolvedEmbed | null {
       srcUrl.searchParams.set('theme', '0')
 
       return {
-        html: `<iframe loading="lazy" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" src="${esc(srcUrl.toString())}" style="${appendDarkModeStyles('width:100%;height:352px;border:0;')}"></iframe>`,
+        html: `<iframe loading="lazy" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" src="${esc(srcUrl.toString())}" style="${appendDarkModeStyles('width:100%;height:352px;border:0;border-radius:12px;overflow:hidden;')}"></iframe>`,
       }
     }
 
@@ -45,7 +45,7 @@ export function resolveEmbed(rawUrl: string): ResolvedEmbed | null {
       srcUrl.searchParams.set('theme', 'dark')
 
       return {
-        html: `<iframe loading="lazy" allow="autoplay *; encrypted-media *; clipboard-write" sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-top-navigation-by-user-activation" src="${esc(srcUrl.toString())}" style="${appendDarkModeStyles('width:100%;height:450px;border:0;')}"></iframe>`,
+        html: `<iframe loading="lazy" allow="autoplay *; encrypted-media *; clipboard-write" sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-top-navigation-by-user-activation" src="${esc(srcUrl.toString())}" style="${appendDarkModeStyles('width:100%;height:450px;border:0;border-radius:12px;overflow:hidden;')}"></iframe>`,
       }
     }
 
