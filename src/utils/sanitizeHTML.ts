@@ -8,6 +8,18 @@ type AllowedAttributes = {
 
 const dedupe = (values: string[] = []) => Array.from(new Set(values))
 
+const allowedIframeHostnames = [
+  'bandcamp.com',
+  'w.soundcloud.com',
+  'open.spotify.com',
+  'embed.music.apple.com',
+  'www.youtube.com',
+  'youtube.com',
+  'youtube-nocookie.com',
+  'www.youtube-nocookie.com',
+  'player.vimeo.com',
+]
+
 const extendAttributes = (
   defaults: AttributeMap,
   tag: string,
@@ -51,7 +63,14 @@ export function sanitizeHTML(html: string): string {
   const defaults = sanitizeHtml.defaults.allowedAttributes ?? {}
   const allowedAttributes: AllowedAttributes = {
     ...defaults,
-    '*': dedupe([...(defaults['*'] ?? []), 'class', 'style', 'title', 'aria-label']),
+    '*': dedupe([
+      ...(defaults['*'] ?? []),
+      'class',
+      'style',
+      'title',
+      'aria-label',
+      'data-preserve-embed',
+    ]),
     a: extendAttributes(defaults, 'a', ['href', 'target', 'rel']),
     audio: ['controls', 'preload', 'loop', 'muted', 'autoplay', 'crossorigin', 'src'],
     source: ['src', 'type'],
@@ -65,15 +84,20 @@ export function sanitizeHTML(html: string): string {
       'decoding',
       'referrerpolicy',
     ]),
-    iframe: extendAttributes(defaults, 'iframe', [
+    iframe: [
       'src',
+      'style',
+      'loading',
       'allow',
       'allowfullscreen',
-      'frameborder',
-      'loading',
       'referrerpolicy',
+      'sandbox',
+      'width',
+      'height',
       'title',
-    ]),
+      'seamless',
+      'data-preserve-embed',
+    ],
     video: extendAttributes(defaults, 'video', [
       'controls',
       'autoplay',
@@ -93,6 +117,7 @@ export function sanitizeHTML(html: string): string {
     allowedTags,
     allowedAttributes,
     allowedSchemes: ['http', 'https', 'data', 'blob'],
+    allowedIframeHostnames,
     nonTextTags: ['audio', 'video', 'iframe'],
     transformTags: {
       a: (tagName, attribs) => {

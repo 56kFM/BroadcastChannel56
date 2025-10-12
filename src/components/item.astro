@@ -3,6 +3,7 @@ import '../assets/item.css'
 import 'prismjs/themes/prism.css'
 import dayjs from '../lib/dayjs'
 import { getEnv } from '../lib/env'
+import { normalizeEmbeds } from '../utils/embeds'
 import { sanitizeHTML } from '../utils/sanitizeHTML'
 import { linkAudioToPlayer } from '../utils/transformAudioLinks'
 import { validateEnv } from '../utils/env'
@@ -50,7 +51,7 @@ let renderError: Error | null = null
 
 const fallbackText = typeof post?.text === 'string' ? post.text : ''
 const fallbackTransformed = fallbackText ? linkAudioToPlayer(fallbackText) : ''
-const fallbackSafeHtml = fallbackTransformed ? sanitizeHTML(fallbackTransformed) : ''
+const fallbackSafeHtml = fallbackTransformed ? normalizeEmbeds(sanitizeHTML(fallbackTransformed)) : ''
 const fallbackLinkUrls = new Set<string>()
 
 const allowListedUrl = (value: string | undefined | null) => {
@@ -89,7 +90,8 @@ const fallbackLinks = Array.from(fallbackLinkUrls).map((url) => ({ url }))
 try {
   const rawContent = typeof post?.content === 'string' ? post.content : ''
   const transformedContent = rawContent ? linkAudioToPlayer(rawContent) : ''
-  safeContent = transformedContent ? sanitizeHTML(transformedContent) : ''
+  const sanitizedContent = transformedContent ? sanitizeHTML(transformedContent) : ''
+  safeContent = sanitizedContent ? normalizeEmbeds(sanitizedContent) : ''
   mediaList = Array.isArray(post?.media)
     ? post.media.filter((media): media is MediaItem =>
         Boolean(media && typeof media.url === 'string' && media.url.length > 0),
