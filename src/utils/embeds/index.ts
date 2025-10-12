@@ -1,5 +1,6 @@
 export type HtmlMutator = (html: string) => string
 
+import { linkToBandcampIframe } from './linkToBandcampIframe'
 import { normalizeAppleMusic } from './providers/appleMusic'
 import { normalizeBandcamp } from './providers/bandcamp'
 import { normalizeSoundCloud } from './providers/soundcloud'
@@ -13,9 +14,15 @@ const mutators: HtmlMutator[] = [
 ]
 
 export function normalizeEmbeds(html: string): string {
-  if (!html || !html.includes('<iframe')) {
+  if (!html) {
     return html
   }
 
-  return mutators.reduce((acc, fn) => fn(acc), html)
+  const preprocessedHtml = linkToBandcampIframe(html)
+
+  if (!preprocessedHtml.includes('<iframe')) {
+    return preprocessedHtml
+  }
+
+  return mutators.reduce((acc, fn) => fn(acc), preprocessedHtml)
 }
