@@ -1,8 +1,9 @@
 /*
   Content-Security-Policy: default-src 'self';
   img-src * data: blob:;
-  media-src 'self' https://*.telegram.org https://*.telegram-cdn.org https://cdn*.telegram.org data: blob:;
+  media-src 'self' https://*.telegram.org https://*.telegram-cdn.org https://cdn*.telegram.org https://telesco.pe data: blob:;
   style-src 'self' 'unsafe-inline';
-  script-src 'self';
+  script-src 'self' https://telegram.org;
   connect-src 'self' https://*.telegram.org https://*.telegram-cdn.org;
+  frame-src https://t.me https://*.telegram.org https://telesco.pe;
 */
