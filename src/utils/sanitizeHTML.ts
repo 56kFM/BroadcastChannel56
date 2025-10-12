@@ -54,6 +54,7 @@ export function sanitizeHTML(html: string): string {
     '*': dedupe([...(defaults['*'] ?? []), 'class', 'style', 'title', 'aria-label']),
     a: extendAttributes(defaults, 'a', ['href', 'target', 'rel']),
     audio: ['controls', 'preload', 'loop', 'muted', 'autoplay', 'crossorigin', 'src'],
+    blockquote: extendAttributes(defaults, 'blockquote', ['data-telegram-post', 'data-width']),
     source: ['src', 'type'],
     img: extendAttributes(defaults, 'img', [
       'src',

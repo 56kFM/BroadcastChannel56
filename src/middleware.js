@@ -66,12 +66,12 @@ export async function onRequest(context, next) {
 
   const cspDirectives = [
     'default-src \'self\'',
-    'script-src \'none\'',
+    'script-src \'self\' https://telegram.org',
     'style-src \'self\' \'unsafe-inline\'',
     'img-src \'self\' https: data:',
-    'media-src \'self\' https:',
-    'frame-src \'self\' https: https://www.youtube-nocookie.com https://www.youtube.com https://open.spotify.com https://embed.music.apple.com https://w.soundcloud.com https://bandcamp.com',
-    'connect-src \'self\' https:',
+    'media-src \'self\' https: https://*.telegram.org https://*.telegram-cdn.org https://cdn*.telegram.org https://telesco.pe',
+    'frame-src \'self\' https: https://www.youtube-nocookie.com https://www.youtube.com https://open.spotify.com https://embed.music.apple.com https://w.soundcloud.com https://bandcamp.com https://t.me https://*.telegram.org https://telesco.pe',
+    'connect-src \'self\' https: https://*.telegram.org https://*.telegram-cdn.org',
     'frame-ancestors \'none\'',
     'upgrade-insecure-requests',
   ]
