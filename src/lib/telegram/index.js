@@ -222,11 +222,20 @@ function extractEmbeddableLinks($, content) {
         return
       }
 
-      if (seen.has(href)) {
+      const family = getEmbedFamilyFromUrl(href)
+
+      if (!family) {
         return
       }
 
-      seen.add(href)
+      const normalizedHref = normalizeLinkForComparison(href)
+      const dedupeKey = normalizedHref ? normalizedHref.toLowerCase() : href
+
+      if (seen.has(dedupeKey)) {
+        return
+      }
+
+      seen.add(dedupeKey)
       links.push({ url: href })
     })
 
