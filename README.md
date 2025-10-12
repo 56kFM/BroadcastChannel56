@@ -74,6 +74,13 @@ COMMENTS=true
 
 ```
 
+## Audio playback
+
+- Direct links to `.mp3`, `.ogg`, `.wav`, and `.m4a` files inside posts render as native `<audio>` players with metadata preloading.
+- Ensure your Content Security Policy allows Telegram media when deploying:
+  - `media-src https://*.telegram.org https://*.telegram-cdn.org https://cdn*.telegram.org data: blob:`
+- Sanitization keeps `<audio>` and `<source>` tags (including required attributes) so players remain functional while other content stays protected.
+
 ## 🙋🏻 FAQs
 
 1. Why is the content empty after deployment?

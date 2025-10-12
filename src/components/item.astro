@@ -4,6 +4,7 @@ import 'prismjs/themes/prism.css'
 import dayjs from '../lib/dayjs'
 import { getEnv } from '../lib/env'
 import { sanitizeHTML } from '../utils/sanitizeHTML'
+import { linkAudioToPlayer } from '../utils/transformAudioLinks'
 import { validateEnv } from '../utils/env'
 import Embed from './Embed.astro'
 import Media from './Media.astro'
@@ -48,7 +49,7 @@ let shouldRenderEmbeds = false
 let renderError: Error | null = null
 
 const fallbackText = typeof post?.text === 'string' ? post.text : ''
-const fallbackSafeHtml = fallbackText ? sanitizeHTML(fallbackText) : ''
+const fallbackSafeHtml = fallbackText ? sanitizeHTML(linkAudioToPlayer(fallbackText)) : ''
 const fallbackLinkUrls = new Set<string>()
 
 const allowListedUrl = (value: string | undefined | null) => {
@@ -86,7 +87,8 @@ const fallbackLinks = Array.from(fallbackLinkUrls).map((url) => ({ url }))
 
 try {
   const rawContent = typeof post?.content === 'string' ? post.content : ''
-  safeContent = rawContent ? sanitizeHTML(rawContent) : ''
+  const transformedContent = rawContent ? linkAudioToPlayer(rawContent) : ''
+  safeContent = transformedContent ? sanitizeHTML(transformedContent) : ''
   mediaList = Array.isArray(post?.media)
     ? post.media.filter((media): media is MediaItem =>
         Boolean(media && typeof media.url === 'string' && media.url.length > 0),

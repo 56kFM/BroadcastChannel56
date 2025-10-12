@@ -132,3 +132,14 @@ body {
     transform: none !important;
   }
 }
+
+audio {
+  inline-size: 100%;
+  margin-block: 0.5rem 1rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  audio {
+    filter: brightness(0.95) contrast(1.05);
+  }
+}
