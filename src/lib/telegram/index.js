@@ -330,45 +330,6 @@ function getAudio($, item, { staticProxy }) {
   return audioItems?.filter(Boolean) ?? []
 }
 
-function getEmbedFamilyFromUrl(rawUrl) {
-  if (typeof rawUrl !== 'string' || !rawUrl) {
-    return null
-  }
-
-  try {
-    const hostname = new URL(rawUrl).hostname?.toLowerCase()
-
-    if (!hostname) {
-      return null
-    }
-
-    if (hostname === 'youtu.be' || hostname === 'youtube.com' || hostname.endsWith('.youtube.com')) {
-      return 'youtube'
-    }
-
-    if (hostname === 'open.spotify.com' || hostname.endsWith('.spotify.com')) {
-      return 'spotify'
-    }
-
-    if (hostname === 'music.apple.com' || hostname.endsWith('.music.apple.com')) {
-      return 'apple-music'
-    }
-
-    if (hostname === 'bandcamp.com' || hostname.endsWith('.bandcamp.com')) {
-      return 'bandcamp'
-    }
-
-    if (hostname === 'soundcloud.com' || hostname.endsWith('.soundcloud.com')) {
-      return 'soundcloud'
-    }
-
-    return null
-  }
-  catch {
-    return null
-  }
-}
-
 const directDownloadExtensions = new Set([
   '.7z',
   '.aac',
@@ -434,25 +395,16 @@ function isDirectDownloadUrl(rawUrl) {
   return false
 }
 
-function getLinkPreview($, item, { staticProxy, index, embeds }) {
+function getLinkPreview($, item, { staticProxy, index }) {
   const link = $(item).find('.tgme_widget_message_link_preview')
   const title = $(item).find('.link_preview_title')?.text() || $(item).find('.link_preview_site_name')?.text()
   const description = $(item).find('.link_preview_description')?.text()
 
   const href = link?.attr('href')?.trim()
-  const previewFamily = getEmbedFamilyFromUrl(href)
   const normalizedHref = normalizeUrlText(href)
 
   if (isDirectDownloadUrl(href)) {
-    return ''
-  }
-
-  if (previewFamily && Array.isArray(embeds) && embeds.length > 0) {
-    const hasMatchingEmbed = embeds.some(embed => getEmbedFamilyFromUrl(embed?.url) === previewFamily)
-
-    if (hasMatchingEmbed) {
-      return ''
-    }
+    return null
   }
 
   link?.attr('target', '_blank').attr('rel', 'noopener').attr('title', description)
@@ -475,7 +427,17 @@ function getLinkPreview($, item, { staticProxy, index, embeds }) {
   const src = image?.attr('style')?.match(/url\(["'](.*?)["']/i)?.[1]
   const imageSrc = src ? staticProxy + src : ''
   image?.replaceWith(`<img class="link_preview_image" alt="${title}" src="${imageSrc}" loading="${index > 15 ? 'eager' : 'lazy'}" />`)
-  return $.html(link)
+  const html = $.html(link)
+
+  if (!html) {
+    return null
+  }
+
+  return {
+    html,
+    href,
+    normalizedHref,
+  }
 }
 
 function normalizeUrlText(value = '') {
@@ -671,8 +633,13 @@ function getPost($, item, { channel, staticProxy, index = 0, baseUrl = '/', enab
   const title = textContent.match(/^.*?(?=[。\n]|http\S)/g)?.[0] ?? textContent ?? ''
   const id = $(item).attr('data-post')?.replace(new RegExp(`${channel}/`, 'i'), '')
   const tags = extractTagsFromText(textContent)
-  const embeds = enableEmbeds ? extractEmbeddableLinks($, content) : []
-  const linkPreview = getLinkPreview($, item, { staticProxy, index, embeds })
+  let embeds = enableEmbeds ? extractEmbeddableLinks($, content) : []
+  const linkPreview = getLinkPreview($, item, { staticProxy, index })
+
+  if (linkPreview?.normalizedHref && Array.isArray(embeds) && embeds.length > 0) {
+    const previewHref = linkPreview.normalizedHref
+    embeds = embeds.filter(embed => normalizeUrlText(embed?.url) !== previewHref)
+  }
   const contentHtml = content?.html()
 
   return {
@@ -694,7 +661,7 @@ function getPost($, item, { channel, staticProxy, index = 0, baseUrl = '/', enab
       $.html($(item).find('.tgme_widget_message_document_wrap')),
       $.html($(item).find('.tgme_widget_message_video_player.not_supported')),
       $.html($(item).find('.tgme_widget_message_location_wrap')),
-      linkPreview,
+      linkPreview?.html,
     ].filter(Boolean).join('').replace(/(url\(["'])((https?:)?\/\/)/g, (match, p1, p2, _p3) => {
       if (p2 === '//') {
         p2 = 'https://'
