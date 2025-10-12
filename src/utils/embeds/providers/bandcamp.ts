@@ -18,15 +18,12 @@ export function normalizeBandcamp(html: string): string {
       const needsLazy = !/\bloading\s*=\s*(['"])?lazy\1?/i.test(`${cleanedBefore}${cleanedAfter}`)
       const lazyAttr = needsLazy ? ' loading="lazy"' : ''
 
-      // TEMP marker to confirm it ran:
-      const marker = ' data-embed-normalized="bandcamp"'
-
       const beforeAttrs = cleanedBefore.trim()
       const afterAttrs = cleanedAfter.trim()
       const remainingAttrs = [beforeAttrs, afterAttrs].filter(Boolean).join(' ')
       const trailingAttrs = remainingAttrs ? ` ${remainingAttrs}` : ''
 
-      return `<iframe style="${STYLE}" src="${newSrc}"${lazyAttr}${marker}${trailingAttrs}></iframe>`
+      return `<iframe style="${STYLE}" src="${newSrc}"${lazyAttr}${trailingAttrs}></iframe>`
     },
   )
 }

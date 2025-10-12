@@ -1,11 +1,6 @@
 ---
 import { resolveEmbed } from '../lib/embeds'
 
-const DEBUG_EMBEDS = import.meta.env.DEBUG_EMBEDS === '1'
-const EMBEDS_DEBUG_GLOBAL_KEY = '__embedsDebugLogged'
-const globalEmbedDebugState = globalThis as Record<string, unknown>
-const hasLoggedFirstEmbed = Boolean(globalEmbedDebugState[EMBEDS_DEBUG_GLOBAL_KEY])
-
 const { url, oembedHtml } = Astro.props as { url: string; oembedHtml?: string }
 
 const fromLoader = oembedHtml ? { html: oembedHtml } : null
@@ -27,11 +22,6 @@ if (!resolved) {
 
 const isSoundCloudPlaceholder =
   !fromLoader && typeof resolved?.html === 'string' && resolved.html.startsWith('<!-- SOUNDCloud_OEMBED')
-
-if (DEBUG_EMBEDS && !hasLoggedFirstEmbed && resolved && !isSoundCloudPlaceholder && typeof resolved.html === 'string') {
-  console.warn('[Embeds] First 500 chars before render:', resolved.html.slice(0, 500))
-  globalEmbedDebugState[EMBEDS_DEBUG_GLOBAL_KEY] = true
-}
 ---
 
 {
