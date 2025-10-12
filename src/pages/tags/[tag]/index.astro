@@ -20,10 +20,8 @@ channel.seo = {
   title: tagLabel,
   text: `Posts tagged with ${tagLabel}`,
 }
-
-const paginationBasePath = `tags/${encodeURIComponent(normalizedTag)}/`
 ---
 
-<List channel={channel} before={false} after={false} paginationGap={true} paginationBasePath={paginationBasePath}>
+<List channel={channel} paginationGap={true}>
   <TagHeader slot="header" channel={channel} tag={tagLabel} />
 </List>

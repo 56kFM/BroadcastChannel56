@@ -1,8 +1,31 @@
 ---
 import List from '../components/list.astro'
 import { getChannelInfo } from '../lib/telegram'
+import { getPageSize } from '../lib/pagination'
 
 const channel = await getChannelInfo(Astro)
+const pageSize = getPageSize()
+const allPosts = Array.isArray(channel?.posts) ? channel.posts : []
+const pageData = allPosts.slice(0, pageSize)
+const hasMore = allPosts.length > pageData.length
+const totalPages = Math.max(1, Math.ceil(allPosts.length / pageSize))
+
+const page = {
+  data: pageData,
+  currentPage: 1,
+  lastPage: totalPages,
+  url: {
+    current: Astro.url.pathname,
+    prev: undefined,
+    next: hasMore ? '/2/' : undefined,
+    last: totalPages > 1 ? `/${totalPages}/` : undefined,
+  },
+}
+
+const paginatedChannel = {
+  ...channel,
+  posts: pageData,
+}
 ---
 
-<List channel={channel} after={false} paginationGap={true} />
+<List channel={paginatedChannel} page={page} paginationGap />
