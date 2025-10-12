@@ -111,22 +111,15 @@ function normalizeMediaSrc(src, staticProxy) {
   }
 
   const trimmedSrc = src.trim()
+  if (!trimmedSrc) {
+    return ''
+  }
 
-  if (/^(?:data:|blob:|https?:)/u.test(trimmedSrc)) {
+  if (/^(?:data:|blob:)/u.test(trimmedSrc)) {
     return trimmedSrc
   }
 
-  if (trimmedSrc.startsWith('//')) {
-    return `https:${trimmedSrc}`
-  }
-
-  const normalizedProxy = normalizeStaticProxy(staticProxy)
-  if (trimmedSrc.startsWith(normalizedProxy)) {
-    return trimmedSrc
-  }
-
-  const normalizedSrc = trimmedSrc.startsWith('/') ? trimmedSrc.slice(1) : trimmedSrc
-  return `${normalizedProxy}${normalizedSrc}`
+  return toProxyUrl(staticProxy, trimmedSrc)
 }
 
 const allowedIframeAttributes = new Set([
