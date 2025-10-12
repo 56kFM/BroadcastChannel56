@@ -712,13 +712,13 @@ function getPost($, item, { channel, staticProxy, index = 0, baseUrl = '/', enab
 
 const unnessaryHeaders = ['host', 'cookie', 'origin', 'referer']
 
-export async function getChannelInfo(Astro, { q = '', type = 'list', id = '', tag = '' } = {}) {
+export async function getChannelInfo(Astro, { before = '', after = '', q = '', type = 'list', id = '', tag = '' } = {}) {
   const embedsEnabled = (getEnv(import.meta.env, Astro, 'ENABLE_EMBEDS') ?? 'true') !== 'false'
-  const cacheKey = JSON.stringify({ q, type, id, tag, enableEmbeds: embedsEnabled })
+  const cacheKey = JSON.stringify({ before, after, q, type, id, tag, enableEmbeds: embedsEnabled })
   const cachedResult = cache.get(cacheKey)
 
   if (cachedResult) {
-    console.info('Match Cache', { q, type, id, tag })
+    console.info('Match Cache', { before, after, q, type, id, tag })
     return JSON.parse(JSON.stringify(cachedResult))
   }
 
@@ -726,34 +726,15 @@ export async function getChannelInfo(Astro, { q = '', type = 'list', id = '', ta
   const host = getEnv(import.meta.env, Astro, 'TELEGRAM_HOST')
     ?? getEnv(import.meta.env, Astro, 'HOST')
     ?? 't.me'
-  const channelHandle = getEnv(import.meta.env, Astro, 'CHANNEL') ?? ''
+  const channel = getEnv(import.meta.env, Astro, 'CHANNEL')
   const staticProxy = getEnv(import.meta.env, Astro, 'STATIC_PROXY') ?? '/static/'
-  const baseUrl = Astro?.locals?.BASE_URL ?? '/'
+  const baseUrl = Astro.locals?.BASE_URL ?? '/'
+
   const normalizedTag = normalizeTag(tag)
-
-  if (!channelHandle) {
-    const emptyChannel = {
-      posts: [],
-      title: '',
-      description: '',
-      descriptionHTML: '',
-      avatar: '',
-      availableTags: [],
-      tagIndex: {},
-      selectedTag: normalizedTag,
-      embedsEnabled,
-    }
-
-    cache.set(cacheKey, emptyChannel)
-    return emptyChannel
-  }
-
   const searchQuery = type === 'post' ? q : (q || (normalizedTag ? `#${normalizedTag}` : ''))
 
-  const url = id
-    ? `https://${host}/${channelHandle}/${id}?embed=1&mode=tme`
-    : `https://${host}/s/${channelHandle}`
-  const headers = Astro?.request ? Object.fromEntries(Astro.request.headers) : {}
+  const url = id ? `https://${host}/${channel}/${id}?embed=1&mode=tme` : `https://${host}/s/${channel}`
+  const headers = Object.fromEntries(Astro.request.headers)
 
   Object.keys(headers).forEach((key) => {
     if (unnessaryHeaders.includes(key)) {
@@ -761,10 +742,12 @@ export async function getChannelInfo(Astro, { q = '', type = 'list', id = '', ta
     }
   })
 
-  console.info('Fetching', url, { q: searchQuery, type, id, tag })
+  console.info('Fetching', url, { before, after, q: searchQuery, type, id, tag })
   const html = await $fetch(url, {
     headers,
     query: {
+      before: before || undefined,
+      after: after || undefined,
       q: searchQuery || undefined,
     },
     retry: 3,
@@ -773,14 +756,14 @@ export async function getChannelInfo(Astro, { q = '', type = 'list', id = '', ta
 
   const $ = cheerio.load(html, {}, false)
   if (id) {
-    const post = getPost($, null, { channel: channelHandle, staticProxy, baseUrl, enableEmbeds: embedsEnabled })
+    const post = getPost($, null, { channel, staticProxy, baseUrl, enableEmbeds: embedsEnabled })
     await hydrateSoundCloudEmbeds([post], { enableEmbeds: embedsEnabled })
     cache.set(cacheKey, post)
     return post
   }
   const posts = (
     $('.tgme_channel_history  .tgme_widget_message_wrap')?.map((index, item) => {
-      return getPost($, item, { channel: channelHandle, staticProxy, index, baseUrl, enableEmbeds: embedsEnabled })
+      return getPost($, item, { channel, staticProxy, index, baseUrl, enableEmbeds: embedsEnabled })
     })?.get()?.reverse().filter(post => ['text'].includes(post.type) && post.id && post.content)
   ) ?? []
 
@@ -805,9 +788,4 @@ export async function getChannelInfo(Astro, { q = '', type = 'list', id = '', ta
 
   cache.set(cacheKey, channelInfo)
   return channelInfo
-}
-
-export async function getChannelPosts(Astro, options = {}) {
-  const channel = await getChannelInfo(Astro, options)
-  return Array.isArray(channel?.posts) ? channel.posts : []
 }
