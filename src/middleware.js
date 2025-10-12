@@ -66,7 +66,7 @@ export async function onRequest(context, next) {
 
   const cspDirectives = [
     'default-src \'self\'',
-    'script-src \'none\'',
+    'script-src \'self\' \'unsafe-inline\'',
     'style-src \'self\' \'unsafe-inline\'',
     'img-src \'self\' https: data:',
     'media-src \'self\' https:',
