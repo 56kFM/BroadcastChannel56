@@ -27,11 +27,7 @@ const afterCursor = posts[0]?.id
 const normalizedBasePath = paginationBasePath ? `${paginationBasePath.replace(/^\/+/u, '').replace(/\/+$/u, '')}/` : ''
 const beforeHref = typeof beforeCursor === 'undefined' ? '' : `${BASE_URL}${normalizedBasePath}before/${beforeCursor}`
 const afterHref = typeof afterCursor === 'undefined' ? '' : `${BASE_URL}${normalizedBasePath}after/${afterCursor}`
-const hasOlderPosts =
-  before &&
-  typeof beforeCursor !== 'undefined' &&
-  Number.parseInt(beforeCursor, 10) > 1 &&
-  posts.length >= maxPostsPerPage
+const hasOlderPosts = before && typeof beforeCursor !== 'undefined' && Number.parseInt(beforeCursor, 10) > 1
 const hasNewerPosts = after && typeof afterCursor !== 'undefined'
 const paginationClassList = {
   'pages-container': true,
@@ -54,7 +50,7 @@ const paginationClassList = {
   <div class:list={paginationClassList}>
     {
       hasOlderPosts ? (
-        <a href={beforeHref} title="Older posts" class="page" rel="next">
+        <a href={beforeHref} title="Older posts" class="page">
           Older
         </a>
       ) : (
@@ -65,7 +61,7 @@ const paginationClassList = {
     <div class="pages-info"></div>
     {
       hasNewerPosts ? (
-        <a href={afterHref} title="Newer posts" class="page" rel="prev">
+        <a href={afterHref} title="Newer posts" class="page">
           Newer
         </a>
       ) : (
