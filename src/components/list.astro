@@ -24,7 +24,8 @@ const hasOlderPosts = before && typeof beforeCursor !== 'undefined' && Number.pa
 const hasNewerPosts = after && typeof afterCursor !== 'undefined'
 /**
  * NOTE: Feed page size is controlled by the repo’s custom paginator.
- * Do not add separate per-page limits (env/const) here, as that causes duplication.
+ * The custom paginator is the source of truth for per-page limits.
+ * Do not add separate per-page limits (env/const) here to avoid duplication.
  */
 const paginationClassList = {
   'pages-container': true,

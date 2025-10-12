@@ -30,7 +30,7 @@
     "@antfu/eslint-config": "^3.0.0",
     "@astrojs/cloudflare": "^11.0.4",
     "@astrojs/node": "^8.3.3",
-    "@types/prismjs": "^1.26.4",
+    "@types/prismjs": "^1.26.5",
     "astro": "^4.15.1",
     "astro-eslint-parser": "^1.0.2",
     "astro-seo": "^0.8.4",
