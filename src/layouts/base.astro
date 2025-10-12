@@ -133,15 +133,34 @@ const hasHeader = Astro.slots.has('header')
         }
 
         if (!shouldDisableAnimation) {
+          const supportsAddEventListener = typeof prefersReducedMotionQuery.addEventListener === 'function'
+          const supportsAddListener = typeof prefersReducedMotionQuery.addListener === 'function'
+
           const handlePreferenceChange = (event) => {
-            if (event.matches) {
-              backToTop.dataset.fallback = 'true'
-              prefersReducedMotionQuery.removeEventListener('change', handlePreferenceChange)
-              toggleBackToTopVisibility()
+            if (!event.matches) {
+              return
             }
+
+            backToTop.dataset.fallback = 'true'
+
+            if (supportsAddEventListener) {
+              prefersReducedMotionQuery.removeEventListener('change', handlePreferenceChange)
+            }
+
+            if (!supportsAddEventListener && supportsAddListener) {
+              prefersReducedMotionQuery.removeListener(handlePreferenceChange)
+            }
+
+            toggleBackToTopVisibility()
           }
 
-          prefersReducedMotionQuery.addEventListener('change', handlePreferenceChange)
+          if (supportsAddEventListener) {
+            prefersReducedMotionQuery.addEventListener('change', handlePreferenceChange)
+          }
+
+          if (!supportsAddEventListener && supportsAddListener) {
+            prefersReducedMotionQuery.addListener(handlePreferenceChange)
+          }
         }
 
         toggleBackToTopVisibility()
