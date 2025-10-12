@@ -4,7 +4,22 @@ import { resolveEmbed } from '../lib/embeds'
 const { url, oembedHtml } = Astro.props as { url: string; oembedHtml?: string }
 
 const fromLoader = oembedHtml ? { html: oembedHtml } : null
-const resolved = fromLoader ?? resolveEmbed(url)
+
+let resolved = fromLoader ?? null
+let embedError: Error | null = null
+
+if (!resolved) {
+  try {
+    resolved = resolveEmbed(url)
+  } catch (error) {
+    embedError = error instanceof Error ? error : new Error('Failed to resolve embed')
+    if (import.meta.env.DEV) {
+      console.warn('Failed to resolve embed', { url, error: embedError })
+    }
+    resolved = null
+  }
+}
+
 const isSoundCloudPlaceholder =
   !fromLoader && typeof resolved?.html === 'string' && resolved.html.startsWith('<!-- SOUNDCloud_OEMBED')
 ---
