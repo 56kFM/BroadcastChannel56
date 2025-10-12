@@ -6,7 +6,6 @@ import { getEnv } from '../lib/env'
 import { sanitizeHTML } from '../utils/sanitizeHTML'
 import { linkAudioToPlayer } from '../utils/transformAudioLinks'
 import { expandTelegramAudioLinks } from '../utils/expandTelegramAudio'
-import { linkToEmbeds, requiredEmbedScriptsFrom } from '../utils/embeds'
 import { validateEnv } from '../utils/env'
 import Embed from './Embed.astro'
 import Media from './Media.astro'
@@ -51,12 +50,7 @@ let shouldRenderEmbeds = false
 let renderError: Error | null = null
 
 const fallbackText = typeof post?.text === 'string' ? post.text : ''
-const fallbackEmbedded = linkToEmbeds(fallbackText || '')
-const fallbackNeedsExpansion =
-  fallbackEmbedded.length > 0 &&
-  requiredEmbedScriptsFrom(fallbackEmbedded).length === 0 &&
-  /https?:\/\/(?:t\.me|telegram\.dog)\//iu.test(fallbackEmbedded)
-const fallbackExpanded = fallbackNeedsExpansion ? await expandTelegramAudioLinks(fallbackEmbedded) : fallbackEmbedded
+const fallbackExpanded = fallbackText ? await expandTelegramAudioLinks(fallbackText) : ''
 const fallbackTransformed = fallbackExpanded ? linkAudioToPlayer(fallbackExpanded) : ''
 const fallbackSafeHtml = fallbackTransformed ? sanitizeHTML(fallbackTransformed) : ''
 const fallbackLinkUrls = new Set<string>()
@@ -96,12 +90,7 @@ const fallbackLinks = Array.from(fallbackLinkUrls).map((url) => ({ url }))
 
 try {
   const rawContent = typeof post?.content === 'string' ? post.content : ''
-  const embeddedContent = linkToEmbeds(rawContent)
-  const needsExpansion =
-    embeddedContent.length > 0 &&
-    requiredEmbedScriptsFrom(embeddedContent).length === 0 &&
-    /https?:\/\/(?:t\.me|telegram\.dog)\//iu.test(embeddedContent)
-  const expandedContent = needsExpansion ? await expandTelegramAudioLinks(embeddedContent) : embeddedContent
+  const expandedContent = rawContent ? await expandTelegramAudioLinks(rawContent) : ''
   const transformedContent = expandedContent ? linkAudioToPlayer(expandedContent) : ''
   safeContent = transformedContent ? sanitizeHTML(transformedContent) : ''
   mediaList = Array.isArray(post?.media)
@@ -129,31 +118,7 @@ try {
 const datetimeSource = typeof post?.datetime === 'string' ? post.datetime : ''
 const datetime = (datetimeSource ? dayjs(datetimeSource) : dayjs()).tz(timezone)
 const timeago = datetime.isBefore(dayjs().subtract(1, 'w')) ? datetime.format('HH:mm · ll · ddd') : datetime.fromNow()
-
-const embedScripts = (() => {
-  const scripts = new Set<string>([
-    ...requiredEmbedScriptsFrom(safeContent),
-    ...requiredEmbedScriptsFrom(fallbackSafeHtml),
-  ])
-
-  const locals = Astro.locals as typeof Astro.locals & { __embedScripts?: Set<string> }
-  if (!locals.__embedScripts) {
-    locals.__embedScripts = new Set()
-  }
-
-  const newScripts: string[] = []
-  for (const src of scripts) {
-    if (!locals.__embedScripts.has(src)) {
-      locals.__embedScripts.add(src)
-      newScripts.push(src)
-    }
-  }
-
-  return newScripts
-})()
 ---
-
-{embedScripts.map((src) => <script async src={src} />)}
 
 <div class="item" style={{ 'view-transition-name': `post-${post.id}` }}>
   <div class="item-content-container">
