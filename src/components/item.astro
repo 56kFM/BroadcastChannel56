@@ -3,7 +3,7 @@ import '../assets/item.css'
 import 'prismjs/themes/prism.css'
 import dayjs from '../lib/dayjs'
 import { getEnv } from '../lib/env'
-import Embed from './Embed.astro'
+import SmartEmbed from './SmartEmbed.astro'
 import Media from './Media.astro'
 
 const locale = getEnv(import.meta.env, Astro, 'LOCALE')
@@ -47,7 +47,7 @@ const timeago = datetime.isBefore(dayjs().subtract(1, 'w')) ? datetime.format('H
         <div class="embed-list">
           {embedList.map((embed, index) => (
             <div class="embed-item" key={`embed-${post.id ?? index}-${index}`}>
-              <Embed url={embed.url} oembedHtml={embed.oembedHtml} />
+              <SmartEmbed url={embed.url} />
             </div>
           ))}
         </div>

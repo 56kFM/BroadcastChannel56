@@ -5,6 +5,8 @@ import flourite from 'flourite'
 import prism from '../prism'
 import { getEnv } from '../env'
 import { extractTagsFromText, normalizeTag } from '../tags'
+import { sanitizeHTML } from '../../utils/sanitizeHTML'
+import { tryMakeEmbed } from '../../utils/embed'
 
 const cache = new LRUCache({
   ttl: 1000 * 60 * 5, // 5 minutes
@@ -94,117 +96,6 @@ function normalizeMediaSrc(src, staticProxy) {
   return `${normalizedProxy}${normalizedSrc}`
 }
 
-const allowedIframeAttributes = new Set([
-  'allow',
-  'allowfullscreen',
-  'allowtransparency',
-  'frameborder',
-  'height',
-  'loading',
-  'scrolling',
-  'sandbox',
-  'src',
-  'style',
-  'title',
-  'width',
-])
-
-function appendDarkModeStyles(style = '') {
-  const trimmed = style.trim().replace(/;\s*$/u, '')
-  const base = trimmed.length ? `${trimmed};` : ''
-  return `${base}color-scheme:dark;background-color:#000;`
-}
-
-function sanitizeIframeHtml(html) {
-  if (typeof html !== 'string') {
-    return ''
-  }
-
-  const match = html.match(/<iframe\b[^>]*><\/iframe>/i)
-  if (!match) {
-    return ''
-  }
-
-  const $ = cheerio.load(match[0])
-  const iframe = $('iframe').first()
-  if (!iframe?.length) {
-    return ''
-  }
-
-  Object.entries(iframe.attr() ?? {}).forEach(([name]) => {
-    if (!allowedIframeAttributes.has(name)) {
-      iframe.removeAttr(name)
-    }
-  })
-
-  const src = iframe.attr('src')
-  if (!src || !/^https?:/iu.test(src)) {
-    return ''
-  }
-
-  iframe.attr('src', src.trim())
-  iframe.attr('width', '100%')
-  if (!iframe.attr('loading')) {
-    iframe.attr('loading', 'lazy')
-  }
-  if (!iframe.attr('title')) {
-    iframe.attr('title', 'SoundCloud embed')
-  }
-
-  const style = iframe.attr('style')
-  if (style && /javascript:/iu.test(style)) {
-    iframe.removeAttr('style')
-  }
-
-  const currentStyle = iframe.attr('style')
-  if (!currentStyle) {
-    iframe.attr('style', appendDarkModeStyles('width:100%;border:0;'))
-  }
-  else {
-    iframe.attr('style', appendDarkModeStyles(currentStyle))
-  }
-
-  return $.html('iframe')
-}
-
-const soundCloudOembedCache = new Map()
-
-async function fetchSoundCloudOembed(rawUrl) {
-  if (soundCloudOembedCache.has(rawUrl)) {
-    return soundCloudOembedCache.get(rawUrl)
-  }
-
-  const endpoint = `https://soundcloud.com/oembed?format=json&url=${encodeURIComponent(rawUrl)}&maxheight=166&show_artwork=true&color=%23212121`
-
-  const request = $fetch(endpoint, {
-    responseType: 'json',
-    retry: 2,
-    retryDelay: 100,
-  })
-    .then((data) => {
-      const html = typeof data?.html === 'string' ? data.html : ''
-      const sanitized = sanitizeIframeHtml(html)
-      return sanitized || null
-    })
-    .catch((error) => {
-      console.error('SoundCloud oEmbed failed', { url: rawUrl, error: error?.message ?? error })
-      return null
-    })
-
-  soundCloudOembedCache.set(rawUrl, request)
-  return request
-}
-
-function isSoundCloudUrl(rawUrl) {
-  try {
-    const url = new URL(rawUrl)
-    return /(?:^|\.)soundcloud\.com$/iu.test(url.hostname)
-  }
-  catch {
-    return false
-  }
-}
-
 function extractEmbeddableLinks($, content) {
   if (!content?.find) {
     return []
@@ -226,45 +117,15 @@ function extractEmbeddableLinks($, content) {
         return
       }
 
+      if (!tryMakeEmbed(href)) {
+        return
+      }
+
       seen.add(href)
       links.push({ url: href })
     })
 
   return links
-}
-
-async function hydrateSoundCloudEmbeds(posts, { enableEmbeds }) {
-  if (!enableEmbeds) {
-    return posts
-  }
-
-  const tasks = []
-
-  posts.forEach((post) => {
-    if (!Array.isArray(post?.embeds)) {
-      return
-    }
-
-    post.embeds.forEach((embed) => {
-      if (!embed?.url || !isSoundCloudUrl(embed.url)) {
-        return
-      }
-
-      const task = fetchSoundCloudOembed(embed.url).then((html) => {
-        if (html) {
-          embed.oembedHtml = html
-        }
-      })
-
-      tasks.push(task)
-    })
-  })
-
-  if (tasks.length > 0) {
-    await Promise.allSettled(tasks)
-  }
-
-  return posts
 }
 
 function getAudio($, item, { staticProxy }) {
@@ -564,7 +425,34 @@ function getPost($, item, { channel, staticProxy, index = 0, baseUrl = '/', enab
   const tags = extractTagsFromText(textContent)
   const embeds = enableEmbeds ? extractEmbeddableLinks($, content) : []
   const linkPreview = getLinkPreview($, item, { staticProxy, index, embeds })
-  const contentHtml = content?.html()
+  const contentHtml = content?.html() ?? ''
+  const contentFragments = [
+    getReply($, item, { channel }),
+    getImages($, item, { staticProxy, index, title }),
+    getVideo($, item, { staticProxy, id, index, title }),
+    contentHtml,
+    getImageStickers($, item, { staticProxy, index }),
+    getVideoStickers($, item, { staticProxy, index }),
+    $(item).find('.tgme_widget_message_poll')?.html(),
+    $.html($(item).find('.tgme_widget_message_document_wrap')),
+    $.html($(item).find('.tgme_widget_message_video_player.not_supported')),
+    $.html($(item).find('.tgme_widget_message_location_wrap')),
+    linkPreview,
+  ].filter(Boolean)
+
+  const rawContent = contentFragments
+    .join('')
+    .replace(/(url\(["'])((https?:)?\/\/)/g, (match, p1, p2, _p3) => {
+      if (p2 === '//') {
+        p2 = 'https://'
+      }
+      if (p2?.startsWith('t.me')) {
+        return false
+      }
+      return `${p1}${staticProxy}${p2}`
+    })
+
+  const sanitizedContent = sanitizeHTML(rawContent)
 
   return {
     id,
@@ -573,28 +461,7 @@ function getPost($, item, { channel, staticProxy, index = 0, baseUrl = '/', enab
     datetime: $(item).find('.tgme_widget_message_date time')?.attr('datetime'),
     tags,
     text: textContent,
-    content: [
-      getReply($, item, { channel }),
-      getImages($, item, { staticProxy, index, title }),
-      getVideo($, item, { staticProxy, id, index, title }),
-      contentHtml,
-      getImageStickers($, item, { staticProxy, index }),
-      getVideoStickers($, item, { staticProxy, index }),
-      // $(item).find('.tgme_widget_message_sticker_wrap')?.html(),
-      $(item).find('.tgme_widget_message_poll')?.html(),
-      $.html($(item).find('.tgme_widget_message_document_wrap')),
-      $.html($(item).find('.tgme_widget_message_video_player.not_supported')),
-      $.html($(item).find('.tgme_widget_message_location_wrap')),
-      linkPreview,
-    ].filter(Boolean).join('').replace(/(url\(["'])((https?:)?\/\/)/g, (match, p1, p2, _p3) => {
-      if (p2 === '//') {
-        p2 = 'https://'
-      }
-      if (p2?.startsWith('t.me')) {
-        return false
-      }
-      return `${p1}${staticProxy}${p2}`
-    }),
+    content: sanitizedContent,
     media: Array.isArray(media) ? media : [],
     embeds: Array.isArray(embeds) ? embeds : [],
     embedsEnabled: Boolean(enableEmbeds),
@@ -648,28 +515,41 @@ export async function getChannelInfo(Astro, { before = '', after = '', q = '', t
   const $ = cheerio.load(html, {}, false)
   if (id) {
     const post = getPost($, null, { channel, staticProxy, baseUrl, enableEmbeds: embedsEnabled })
-    await hydrateSoundCloudEmbeds([post], { enableEmbeds: embedsEnabled })
     cache.set(cacheKey, post)
     return post
   }
   const posts = (
-    $('.tgme_channel_history  .tgme_widget_message_wrap')?.map((index, item) => {
-      return getPost($, item, { channel, staticProxy, index, baseUrl, enableEmbeds: embedsEnabled })
-    })?.get()?.reverse().filter(post => ['text'].includes(post.type) && post.id && post.content)
-  ) ?? []
+    $('.tgme_channel_history  .tgme_widget_message_wrap')
+      ?.map((index, item) => {
+        return getPost($, item, { channel, staticProxy, index, baseUrl, enableEmbeds: embedsEnabled })
+      })
+      ?.get()
+      ?.reverse()
+      ?.filter((post) => {
+        if (!post || post.type !== 'text' || !post.id) {
+          return false
+        }
 
-  await hydrateSoundCloudEmbeds(posts, { enableEmbeds: embedsEnabled })
+        const hasContent = typeof post.content === 'string' && post.content.length > 0
+        const hasMedia = Array.isArray(post.media) && post.media.length > 0
+
+        return hasContent || hasMedia
+      })
+  ) ?? []
 
   const tagIndex = buildTagIndex(posts)
   const availableTags = Object.keys(tagIndex).sort((a, b) => a.localeCompare(b))
   const selectedTag = normalizedTag
   const filteredPosts = selectedTag ? (tagIndex[selectedTag] ?? []) : posts
 
+  const rawDescriptionHtml = modifyHTMLContent($, $('.tgme_channel_info_description'))?.html()
+  const sanitizedDescriptionHtml = sanitizeHTML(rawDescriptionHtml)
+
   const channelInfo = {
     posts: filteredPosts,
     title: $('.tgme_channel_info_header_title')?.text(),
     description: $('.tgme_channel_info_description')?.text(),
-    descriptionHTML: modifyHTMLContent($, $('.tgme_channel_info_description'))?.html(),
+    descriptionHTML: sanitizedDescriptionHtml,
     avatar: $('.tgme_page_photo_image img')?.attr('src'),
     availableTags,
     tagIndex,

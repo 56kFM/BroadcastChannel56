@@ -1,6 +1,6 @@
 import rss from '@astrojs/rss'
-import sanitizeHtml from 'sanitize-html'
 import { getChannelInfo } from '../lib/telegram'
+import { sanitizeHTML } from '../utils/sanitizeHTML'
 
 export async function GET(Astro) {
   const { SITE_URL } = Astro.locals
@@ -16,10 +16,7 @@ export async function GET(Astro) {
     items: posts.map(item => ({
       link: `posts/${item.id}`,
       title: item.title || channel.title,
-      description: sanitizeHtml(item.text ?? '', {
-        allowedTags: [],
-        allowedAttributes: {},
-      }),
+      description: sanitizeHTML(item.content ?? item.text ?? ''),
       ...(item.datetime ? { pubDate: new Date(item.datetime) } : {}),
     })),
   })
