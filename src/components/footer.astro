@@ -1,18 +1,20 @@
 ---
 import { getSocialLinks } from '../lib/social-links'
+import { sanitizeHTML } from '../utils/sanitizeHTML'
 
 const { channel } = Astro.props
 
 const socialLinks = getSocialLinks(import.meta.env, Astro)
 const hasSocialLinks = socialLinks.length > 0
 const hasDescription = typeof channel?.descriptionHTML === 'string' && channel.descriptionHTML.length > 0
+const safeDescription = hasDescription ? sanitizeHTML(channel?.descriptionHTML ?? '') : ''
 const shouldRenderFooter = hasDescription || hasSocialLinks
 ---
 
 {
   shouldRenderFooter && (
     <footer class="site-footer">
-      {hasDescription && <div class="text-box site-intro site-intro--plain" set:html={channel?.descriptionHTML} />}
+      {hasDescription && <div class="text-box site-intro site-intro--plain" set:html={safeDescription} />}
       {hasSocialLinks && (
         <div class="footer-icons">
           {socialLinks.map((link) => (

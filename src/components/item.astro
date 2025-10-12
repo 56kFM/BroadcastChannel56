@@ -3,54 +3,157 @@ import '../assets/item.css'
 import 'prismjs/themes/prism.css'
 import dayjs from '../lib/dayjs'
 import { getEnv } from '../lib/env'
+import { sanitizeHTML } from '../utils/sanitizeHTML'
+import { validateEnv } from '../utils/env'
 import Embed from './Embed.astro'
 import Media from './Media.astro'
-
-const locale = getEnv(import.meta.env, Astro, 'LOCALE')
-const timezone = getEnv(import.meta.env, Astro, 'TIMEZONE')
-
-locale && dayjs.locale(locale)
 
 const { BASE_URL } = Astro.locals
 const { post, isItem } = Astro.props
 
-const channel = getEnv(import.meta.env, Astro, 'CHANNEL')
+const validatedEnv = validateEnv({
+  env: import.meta.env,
+  runtimeEnv: Astro.locals?.runtime?.env,
+  isDev: import.meta.env.DEV,
+  isBuild: import.meta.env.PROD,
+})
+
+const locale = (getEnv(import.meta.env, Astro, 'LOCALE') ?? validatedEnv.locale) || ''
+if (locale) {
+  dayjs.locale(locale)
+}
+
+const timezone = (getEnv(import.meta.env, Astro, 'TIMEZONE') ?? validatedEnv.timezone) || 'UTC'
+const channel = getEnv(import.meta.env, Astro, 'CHANNEL') ?? validatedEnv.channel
 const COMMENTS = getEnv(import.meta.env, Astro, 'COMMENTS')
 const envEmbedSetting = getEnv(import.meta.env, Astro, 'ENABLE_EMBEDS')
 const envEmbedsEnabled = envEmbedSetting === undefined ? true : envEmbedSetting !== 'false'
 
-const content = typeof post.content === 'string' ? post.content : ''
-const mediaList = Array.isArray(post?.media) ? post.media : []
-const embedList = Array.isArray(post?.embeds) ? post.embeds : []
-const embedsEnabled = envEmbedsEnabled && (post?.embedsEnabled ?? envEmbedsEnabled)
-const shouldRenderEmbeds = embedsEnabled && embedList.length > 0
-const datetime = dayjs(post.datetime).tz(timezone)
+type MediaItem = {
+  kind?: string
+  url?: string
+  mime?: string
+  caption?: string
+}
+
+type EmbedItem = {
+  url: string
+  oembedHtml?: string
+}
+
+let safeContent = ''
+let mediaList: MediaItem[] = []
+let embedList: EmbedItem[] = []
+let shouldRenderEmbeds = false
+let renderError: Error | null = null
+
+const fallbackText = typeof post?.text === 'string' ? post.text : ''
+const fallbackSafeHtml = fallbackText ? sanitizeHTML(fallbackText) : ''
+const fallbackLinkUrls = new Set<string>()
+
+const allowListedUrl = (value: string | undefined | null) => {
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  const trimmed = value.trim()
+  if (!/^https?:/iu.test(trimmed)) {
+    return null
+  }
+
+  return trimmed
+}
+
+if (Array.isArray(post?.embeds)) {
+  post.embeds.forEach((embed) => {
+    const safeUrl = allowListedUrl(embed?.url)
+    if (safeUrl) {
+      fallbackLinkUrls.add(safeUrl)
+    }
+  })
+}
+
+if (Array.isArray(post?.media)) {
+  post.media.forEach((media) => {
+    const safeUrl = allowListedUrl(media?.url)
+    if (safeUrl) {
+      fallbackLinkUrls.add(safeUrl)
+    }
+  })
+}
+
+const fallbackLinks = Array.from(fallbackLinkUrls).map((url) => ({ url }))
+
+try {
+  const rawContent = typeof post?.content === 'string' ? post.content : ''
+  safeContent = rawContent ? sanitizeHTML(rawContent) : ''
+  mediaList = Array.isArray(post?.media)
+    ? post.media.filter((media): media is MediaItem =>
+        Boolean(media && typeof media.url === 'string' && media.url.length > 0),
+      )
+    : []
+  embedList = Array.isArray(post?.embeds)
+    ? post.embeds.filter((embed): embed is EmbedItem =>
+        Boolean(embed && typeof embed.url === 'string' && embed.url.length > 0),
+      )
+    : []
+  const embedsEnabled = envEmbedsEnabled && (post?.embedsEnabled ?? envEmbedsEnabled)
+  shouldRenderEmbeds = embedsEnabled && embedList.length > 0
+} catch (error) {
+  renderError = error instanceof Error ? error : new Error('Failed to render post content')
+  if (import.meta.env.DEV) {
+    console.warn('Failed to render post content', {
+      id: post?.id,
+      error: renderError,
+    })
+  }
+}
+
+const datetimeSource = typeof post?.datetime === 'string' ? post.datetime : ''
+const datetime = (datetimeSource ? dayjs(datetimeSource) : dayjs()).tz(timezone)
 const timeago = datetime.isBefore(dayjs().subtract(1, 'w')) ? datetime.format('HH:mm · ll · ddd') : datetime.fromNow()
 ---
 
 <div class="item" style={{ 'view-transition-name': `post-${post.id}` }}>
   <div class="item-content-container">
-    {content.length > 0 && <div class={`text-box content`} set:html={content} />}
-
     {
-      mediaList.length > 0 && (
-        <div class="media-list">
-          {mediaList.map((media, index) => (
-            <Media {...media} key={`media-${post.id ?? index}-${index}`} />
+      renderError ? (
+        <div class="text-box content">
+          {fallbackSafeHtml.length > 0 ? (
+            <div set:html={fallbackSafeHtml} />
+          ) : (
+            fallbackText.length > 0 && <p>{fallbackText}</p>
+          )}
+          {fallbackLinks.map((link) => (
+            <p class="embed-fallback" key={`fallback-link-${link.url}`}>
+              <a href={link.url} rel="noopener noreferrer nofollow ugc">
+                {link.url}
+              </a>
+            </p>
           ))}
         </div>
-      )
-    }
+      ) : (
+        <Fragment>
+          {safeContent.length > 0 && <div class={`text-box content`} set:html={safeContent} />}
 
-    {
-      shouldRenderEmbeds && (
-        <div class="embed-list">
-          {embedList.map((embed, index) => (
-            <div class="embed-item" key={`embed-${post.id ?? index}-${index}`}>
-              <Embed url={embed.url} oembedHtml={embed.oembedHtml} />
+          {mediaList.length > 0 && (
+            <div class="media-list">
+              {mediaList.map((media, index) => (
+                <Media {...media} key={`media-${post.id ?? index}-${index}`} />
+              ))}
             </div>
-          ))}
-        </div>
+          )}
+
+          {shouldRenderEmbeds && (
+            <div class="embed-list">
+              {embedList.map((embed, index) => (
+                <div class="embed-item" key={`embed-${post.id ?? index}-${index}`}>
+                  <Embed url={embed.url} oembedHtml={embed.oembedHtml} />
+                </div>
+              ))}
+            </div>
+          )}
+        </Fragment>
       )
     }
   </div>

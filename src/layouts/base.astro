@@ -95,7 +95,7 @@ const hasHeader = Astro.slots.has('header')
       <Footer channel={channel} />
     </div>
     <a href="#wrapper" id="back-to-top" aria-label="Back to top">
-      <img {...backToTopIcon} alt="Back to Top" />
+      <img {...backToTopIcon} alt="Back to Top" loading="lazy" decoding="async" />
     </a>
     <script is:inline>
       const backToTop = document.getElementById('back-to-top')
