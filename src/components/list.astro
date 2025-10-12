@@ -3,36 +3,22 @@ import Layout from '../layouts/base.astro'
 import Header from '../components/header.astro'
 import Item from '../components/item.astro'
 
-const { BASE_URL } = Astro.locals
-const {
-  channel,
-  before = true,
-  after = true,
-  isItem = false,
-  paginationGap = false,
-  paginationBasePath = '',
-} = Astro.props
+const { channel, page = undefined, posts: explicitPosts, isItem = false, paginationGap = false } = Astro.props
 
-const DEFAULT_POSTS_PER_PAGE = 20
-const configuredPostsPerPage = Number.parseInt(import.meta.env.PUBLIC_POSTS_PER_PAGE ?? '', 10)
-const maxPostsPerPage =
-  Number.isFinite(configuredPostsPerPage) && configuredPostsPerPage > 0
-    ? configuredPostsPerPage
-    : DEFAULT_POSTS_PER_PAGE
+const posts = Array.isArray(explicitPosts)
+  ? explicitPosts
+  : Array.isArray(page?.data)
+    ? page.data
+    : Array.isArray(channel?.posts)
+      ? channel.posts
+      : []
 
-const posts = Array.isArray(channel?.posts) ? channel.posts : []
-const beforeCursor = posts.at(-1)?.id
-const afterCursor = posts[0]?.id
-
-const normalizedBasePath = paginationBasePath ? `${paginationBasePath.replace(/^\/+/u, '').replace(/\/+$/u, '')}/` : ''
-const beforeHref = typeof beforeCursor === 'undefined' ? '' : `${BASE_URL}${normalizedBasePath}before/${beforeCursor}`
-const afterHref = typeof afterCursor === 'undefined' ? '' : `${BASE_URL}${normalizedBasePath}after/${afterCursor}`
-const hasOlderPosts = before && typeof beforeCursor !== 'undefined' && Number.parseInt(beforeCursor, 10) > 1
-const hasNewerPosts = after && typeof afterCursor !== 'undefined'
 const paginationClassList = {
   'pages-container': true,
   'pages-container--with-gap': paginationGap,
 }
+
+const showPager = Boolean(page?.url?.prev || page?.url?.next)
 ---
 
 <Layout channel={channel} id="main-container">
@@ -47,26 +33,20 @@ const paginationClassList = {
     }
   </div>
 
-  <div class:list={paginationClassList}>
-    {
-      hasOlderPosts ? (
-        <a href={beforeHref} title="Older posts" class="page">
-          Older
-        </a>
-      ) : (
-        <span class="page-placeholder">&nbsp;</span>
-      )
-    }
-
-    <div class="pages-info"></div>
-    {
-      hasNewerPosts ? (
-        <a href={afterHref} title="Newer posts" class="page">
-          Newer
-        </a>
-      ) : (
-        <span class="page-placeholder">&nbsp;</span>
-      )
-    }
-  </div>
+  {
+    showPager && (
+      <nav class:list={paginationClassList} aria-label="Pagination">
+        {page?.url?.prev && (
+          <a href={page.url.prev} rel="prev" aria-label="Newer posts" class="page">
+            ← Newer
+          </a>
+        )}
+        {page?.url?.next && (
+          <a href={page.url.next} rel="next" aria-label="Older posts" class="page">
+            Older →
+          </a>
+        )}
+      </nav>
+    )
+  }
 </Layout>

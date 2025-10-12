@@ -25,5 +25,5 @@ function findEnvValue(env = {}, name) {
 }
 
 export function getEnv(env, Astro, name) {
-  return findEnvValue(env, name) ?? findEnvValue(Astro.locals?.runtime?.env, name)
+  return findEnvValue(env, name) ?? findEnvValue(Astro?.locals?.runtime?.env, name)
 }
