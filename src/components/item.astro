@@ -69,20 +69,6 @@ function normalizeExistingBandcampIframes(html: string): string {
   )
 }
 
-function replaceBandcampLinksWithIframe(html: string): string {
-  return html.replace(
-    /<a\b[^>]*href=["'](?<url>https?:\/\/[^"']*\.bandcamp\.com\/(?<kind>album|track)\/[^"']*)["'][^>]*>[\s\S]*?<\/a>/gi,
-    (match) => {
-      const urlMatch = match.match(/href=["']([^"']+)["']/i)
-      if (!urlMatch) return match
-      const url = urlMatch[1]
-      const qs = BC_PRESET.replace(/\/$/, '').replace(/\//g, '&')
-      const src = `https://bandcamp.com/EmbeddedPlayer/?url=${encodeURIComponent(url)}&${qs}`
-      return `<iframe style="${BC_STYLE}" src="${src}" loading="lazy" seamless></iframe>`
-    },
-  )
-}
-
 function dedupeBandcampIframes(html: string): string {
   const seen = new Set<string>()
   return html.replace(
@@ -110,8 +96,6 @@ function applyBandcampFix(renderedHtml: string): string {
   let html = renderedHtml
   if (hasBandcampIframe(html)) {
     html = normalizeExistingBandcampIframes(html)
-  } else {
-    html = replaceBandcampLinksWithIframe(html)
   }
   html = dedupeBandcampIframes(html)
   return html
@@ -216,9 +200,7 @@ const timeago = datetime.isBefore(dayjs().subtract(1, 'w')) ? datetime.format('H
         </div>
       ) : (
         <Fragment>
-          {renderedContentHtml.length > 0 && (
-            <div class={`text-box content`} set:html={renderedContentHtml} />
-          )}
+          {renderedContentHtml.length > 0 && <div class={`text-box content`} set:html={renderedContentHtml} />}
 
           {mediaList.length > 0 && (
             <div class="media-list">
