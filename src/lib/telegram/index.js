@@ -441,6 +441,7 @@ function getLinkPreview($, item, { staticProxy, index, embeds }) {
 
   const href = link?.attr('href')?.trim()
   const previewFamily = getEmbedFamilyFromUrl(href)
+  const normalizedHref = normalizeUrlText(href)
 
   if (isDirectDownloadUrl(href)) {
     return ''
@@ -457,11 +458,49 @@ function getLinkPreview($, item, { staticProxy, index, embeds }) {
   link?.attr('target', '_blank').attr('rel', 'noopener').attr('title', description)
   link?.find('.link_preview_url')?.remove()
 
+  if (normalizedHref) {
+    ['.link_preview_title', '.link_preview_description', '.link_preview_site_name']
+      .forEach((selector) => {
+        link?.find(selector)?.each((_index, element) => {
+          const text = $(element)?.text()?.trim()
+
+          if (text && normalizeUrlText(text) === normalizedHref) {
+            $(element)?.remove()
+          }
+        })
+      })
+  }
+
   const image = $(item).find('.link_preview_image')
   const src = image?.attr('style')?.match(/url\(["'](.*?)["']/i)?.[1]
   const imageSrc = src ? staticProxy + src : ''
   image?.replaceWith(`<img class="link_preview_image" alt="${title}" src="${imageSrc}" loading="${index > 15 ? 'eager' : 'lazy'}" />`)
   return $.html(link)
+}
+
+function normalizeUrlText(value = '') {
+  if (typeof value !== 'string') {
+    return ''
+  }
+
+  const trimmedValue = value.trim()
+
+  if (!trimmedValue) {
+    return ''
+  }
+
+  try {
+    const url = new URL(trimmedValue)
+    const pathname = url.pathname?.replace(/\/+$/, '') ?? ''
+    const normalizedPathname = pathname === '/' ? '' : pathname
+    return `${url.hostname.toLowerCase()}${normalizedPathname}${url.search}${url.hash}`
+  }
+  catch {
+    return trimmedValue
+      .replace(/^https?:\/\//i, '')
+      .replace(/\/+$/, '')
+      .toLowerCase()
+  }
 }
 
 function getReply($, item, { channel }) {
