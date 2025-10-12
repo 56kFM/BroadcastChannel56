@@ -42,92 +42,79 @@ type EmbedItem = {
   oembedHtml?: string
 }
 
-const bandcampIframeStyle = 'border: 0; width: 100%; height: 120px;'
+// --- Bandcamp-only helpers (local to this file) ---
+const BC_STYLE = 'border: 0; width: 100%; height: 120px;'
+const BC_PRESET = 'size=large/bgcol=333333/linkcol=0f91ff/tracklist=false/artwork=small/transparent=true/'
 
-function bandcampPresetIframeFromId(idType: 'album' | 'track', id: string) {
-  const src = `https://bandcamp.com/EmbeddedPlayer/${idType}=${id}/size=large/bgcol=333333/linkcol=0f91ff/tracklist=false/artwork=small/transparent=true/`
-  return `<iframe style="${bandcampIframeStyle}" src="${src}" loading="lazy" seamless></iframe>`
+function hasBandcampIframe(html: string): boolean {
+  return /<iframe[^>]+src=["']https?:\/\/bandcamp\.com\/EmbeddedPlayer\//i.test(html)
 }
 
-function bandcampPresetIframeFromUrl(url: string) {
-  const base = 'https://bandcamp.com/EmbeddedPlayer/'
-  const params = 'size=large/bgcol=333333/linkcol=0f91ff/tracklist=false/artwork=small/transparent=true/'
-  const src = `${base}?url=${encodeURIComponent(url)}&${params.replace(/\//g, '&')}`
-  return `<iframe style="${bandcampIframeStyle}" src="${src}" loading="lazy" seamless></iframe>`
-}
-
-const decodeAttributeValue = (value: string) => value.replace(/&amp;/gi, '&')
-
-const safeDecodeURIComponent = (value: string) => {
-  try {
-    return decodeURIComponent(value)
-  } catch {
-    return value
-  }
-}
-
-const rewriteBandcampIframes = (html: string) => {
+function normalizeExistingBandcampIframes(html: string): string {
   return html.replace(
-    /<iframe\b[^>]*?\bsrc=(['"])([^'"\s>]+)\1[^>]*?>[\s\S]*?<\/iframe>/gi,
-    (match, _quote, rawSrc) => {
-      const normalizedSrc = decodeAttributeValue(rawSrc)
-      if (!/bandcamp\.com\/EmbeddedPlayer/i.test(normalizedSrc)) {
-        return match
-      }
+    /<iframe\b([^>]*?)\bsrc=(["'])(https?:)?\/\/bandcamp\.com\/EmbeddedPlayer\/([^'"\s>]+)\2([^>]*)>\s*<\/iframe>/gi,
+    (m, before, q, _proto, rest, after) => {
+      const id = rest.match(/\b(album|track)=(\d+)/i)
+      const newSrc = id
+        ? `https://bandcamp.com/EmbeddedPlayer/${id[1].toLowerCase()}=${id[2]}/${BC_PRESET}`
+        : `https://bandcamp.com/EmbeddedPlayer/${rest.split('?')[0].replace(/\/?$/, '/')}${BC_PRESET}`
 
-      const idMatch = normalizedSrc.match(/\b(album|track)=(\d+)/i)
-      if (idMatch) {
-        const idType = idMatch[1].toLowerCase() as 'album' | 'track'
-        return bandcampPresetIframeFromId(idType, idMatch[2])
-      }
+      const cleanedBefore = stripAttr(before, 'style')
+      const cleanedAfter = ensureAttr(stripAttr(after, 'style'), 'seamless')
+      const needsLazy = !/\bloading\s*=\s*(["'])?lazy\1?/i.test(cleanedBefore + cleanedAfter)
+      const lazyAttr = needsLazy ? ' loading="lazy"' : ''
 
-      const urlMatch = normalizedSrc.match(/[?&]url=([^&]+)/i)
-      if (urlMatch) {
-        const decodedUrl = safeDecodeURIComponent(urlMatch[1])
-        return bandcampPresetIframeFromUrl(decodedUrl)
-      }
-
-      return match
+      return `<iframe style="${BC_STYLE}" src="${newSrc}"${lazyAttr} ${cleanedBefore.trim()} ${cleanedAfter.trim()}></iframe>`
     },
   )
 }
 
-const isBandcampPlayableUrl = (rawUrl: string) => {
-  try {
-    const url = new URL(rawUrl)
-    const hostname = url.hostname.toLowerCase()
-    if (!hostname.endsWith('.bandcamp.com')) {
-      return false
-    }
-
-    const path = url.pathname.toLowerCase()
-    return path.includes('/album/') || path.includes('/track/')
-  } catch {
-    return false
-  }
-}
-
-const convertBandcampLinks = (html: string) => {
+function replaceBandcampLinksWithIframe(html: string): string {
   return html.replace(
-    /<a\b([^>]*?)\bhref=(['"])([^'"\s>]+)\2([^>]*)>[\s\S]*?<\/a>/gi,
-    (match, _before, _quote, rawHref, _after) => {
-      const normalizedHref = decodeAttributeValue(rawHref)
-      if (!isBandcampPlayableUrl(normalizedHref)) {
-        return match
-      }
-
-      return bandcampPresetIframeFromUrl(normalizedHref)
+    /<a\b[^>]*href=["'](?<url>https?:\/\/[^"']*\.bandcamp\.com\/(?<kind>album|track)\/[^"']*)["'][^>]*>[\s\S]*?<\/a>/gi,
+    (match) => {
+      const urlMatch = match.match(/href=["']([^"']+)["']/i)
+      if (!urlMatch) return match
+      const url = urlMatch[1]
+      const qs = BC_PRESET.replace(/\/$/, '').replace(/\//g, '&')
+      const src = `https://bandcamp.com/EmbeddedPlayer/?url=${encodeURIComponent(url)}&${qs}`
+      return `<iframe style="${BC_STYLE}" src="${src}" loading="lazy" seamless></iframe>`
     },
   )
 }
 
-const normalizeBandcampEmbeds = (html: string) => {
-  if (!html || !/bandcamp\.com/i.test(html)) {
-    return html
-  }
+function dedupeBandcampIframes(html: string): string {
+  const seen = new Set<string>()
+  return html.replace(
+    /<iframe\b[^>]*\bsrc=["']https?:\/\/bandcamp\.com\/EmbeddedPlayer\/(album|track)=(\d+)[^"']*["'][^>]*>\s*<\/iframe>/gi,
+    (m, kind, id) => {
+      const key = `${kind.toLowerCase()}:${id}`
+      if (seen.has(key)) return ''
+      seen.add(key)
+      return m
+    },
+  )
+}
 
-  const withRewrittenIframes = rewriteBandcampIframes(html)
-  return convertBandcampLinks(withRewrittenIframes)
+// small attribute utils
+function stripAttr(attrs: string, name: string): string {
+  const re = new RegExp(`\\s${name}(\\s*=\\s*(?:\"[^\"]*\"|'[^']*'|[^\\s\"'=<>` + '`' + `]+))?`, 'gi')
+  return attrs.replace(re, '')
+}
+function ensureAttr(attrs: string, name: string): string {
+  return new RegExp(`\\b${name}\\b`, 'i').test(attrs) ? attrs : `${attrs} ${name}`
+}
+
+// Main wrapper to call right before set:html
+function applyBandcampFix(renderedHtml: string): string {
+  let html = renderedHtml
+  if (hasBandcampIframe(html)) {
+    html = normalizeExistingBandcampIframes(html)
+  } else {
+    html = replaceBandcampLinksWithIframe(html)
+  }
+  html = dedupeBandcampIframes(html)
+  return html
 }
 
 let safeContent = ''
@@ -138,8 +125,7 @@ let renderError: Error | null = null
 
 const fallbackText = typeof post?.text === 'string' ? post.text : ''
 const fallbackTransformed = fallbackText ? linkAudioToPlayer(fallbackText) : ''
-const fallbackSanitizedHtml = fallbackTransformed ? sanitizeHTML(fallbackTransformed) : ''
-const fallbackSafeHtml = fallbackSanitizedHtml ? normalizeBandcampEmbeds(fallbackSanitizedHtml) : ''
+const fallbackSafeHtml = fallbackTransformed ? sanitizeHTML(fallbackTransformed) : ''
 const fallbackLinkUrls = new Set<string>()
 
 const allowListedUrl = (value: string | undefined | null) => {
@@ -179,8 +165,7 @@ try {
   const rawContent = typeof post?.content === 'string' ? post.content : ''
   const transformedContent = rawContent ? linkAudioToPlayer(rawContent) : ''
   const sanitizedContent = transformedContent ? sanitizeHTML(transformedContent) : ''
-  const normalizedContent = sanitizedContent ? normalizeBandcampEmbeds(sanitizedContent) : ''
-  safeContent = normalizedContent
+  safeContent = sanitizedContent
   mediaList = Array.isArray(post?.media)
     ? post.media.filter((media): media is MediaItem =>
         Boolean(media && typeof media.url === 'string' && media.url.length > 0),
@@ -203,6 +188,9 @@ try {
   }
 }
 
+const renderedFallbackHtml = fallbackSafeHtml ? applyBandcampFix(fallbackSafeHtml) : ''
+const renderedContentHtml = safeContent ? applyBandcampFix(safeContent) : ''
+
 const datetimeSource = typeof post?.datetime === 'string' ? post.datetime : ''
 const datetime = (datetimeSource ? dayjs(datetimeSource) : dayjs()).tz(timezone)
 const timeago = datetime.isBefore(dayjs().subtract(1, 'w')) ? datetime.format('HH:mm · ll · ddd') : datetime.fromNow()
@@ -213,8 +201,8 @@ const timeago = datetime.isBefore(dayjs().subtract(1, 'w')) ? datetime.format('H
     {
       renderError ? (
         <div class="text-box content">
-          {fallbackSafeHtml.length > 0 ? (
-            <div set:html={fallbackSafeHtml} />
+          {renderedFallbackHtml.length > 0 ? (
+            <div set:html={renderedFallbackHtml} />
           ) : (
             fallbackText.length > 0 && <p>{fallbackText}</p>
           )}
@@ -228,7 +216,9 @@ const timeago = datetime.isBefore(dayjs().subtract(1, 'w')) ? datetime.format('H
         </div>
       ) : (
         <Fragment>
-          {safeContent.length > 0 && <div class={`text-box content`} set:html={safeContent} />}
+          {renderedContentHtml.length > 0 && (
+            <div class={`text-box content`} set:html={renderedContentHtml} />
+          )}
 
           {mediaList.length > 0 && (
             <div class="media-list">

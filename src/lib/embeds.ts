@@ -53,6 +53,26 @@ export function resolveEmbed(rawUrl: string): ResolvedEmbed | null {
       }
     }
 
+    // Spotify
+    if (/(^|\.)open\.spotify\.com$/.test(u.hostname)) {
+      const srcUrl = new URL(`https://open.spotify.com/embed${u.pathname}${u.search || ''}`)
+      srcUrl.searchParams.set('theme', '0')
+
+      return {
+        html: `<iframe loading="lazy" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" src="${esc(srcUrl.toString())}" style="${appendDarkModeStyles('width:100%;height:352px;border:0;border-radius:12px;overflow:hidden;')}"></iframe>`,
+      }
+    }
+
+    // Apple Music
+    if (/(^|\.)music\.apple\.com$/.test(u.hostname)) {
+      const srcUrl = new URL(`https://embed.music.apple.com${u.pathname}${u.search || ''}`)
+      srcUrl.searchParams.set('theme', 'dark')
+
+      return {
+        html: `<iframe loading="lazy" allow="autoplay *; encrypted-media *; clipboard-write" sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-top-navigation-by-user-activation" src="${esc(srcUrl.toString())}" style="${appendDarkModeStyles('width:100%;height:450px;border:0;border-radius:12px;overflow:hidden;')}"></iframe>`,
+      }
+    }
+
     // Bandcamp (embedded player with ?url=)
     if (/bandcamp\.com$/.test(u.hostname)) {
       const normalizedUrl = decodeAttributeValue(rawUrl)
@@ -72,6 +92,12 @@ export function resolveEmbed(rawUrl: string): ResolvedEmbed | null {
       }
 
       return { html: bandcampPresetIframeFromUrl(normalizedUrl) }
+    }
+
+    // SoundCloud (handled in server loader via oEmbed; return a token to trigger fetch)
+    if (/(^|\.)soundcloud\.com$/.test(u.hostname)) {
+      const oembed = `https://soundcloud.com/oembed?format=json&url=${encodeURIComponent(rawUrl)}&maxheight=166&show_artwork=true&color=%23212121`
+      return { html: `<!-- SOUNDCloud_OEMBED ${esc(oembed)} -->` }
     }
 
     return null
