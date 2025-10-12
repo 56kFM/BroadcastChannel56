@@ -94,6 +94,50 @@ function normalizeMediaSrc(src, staticProxy) {
   return `${normalizedProxy}${normalizedSrc}`
 }
 
+function normalizeUrl(u = '') {
+  try {
+    const replaced = typeof u === 'string' ? u.replace(/^http:\/\//i, 'https://') : ''
+    const url = new URL(replaced)
+    url.hostname = url.hostname.toLowerCase()
+    url.pathname = url.pathname.replace(/\/+$/, '')
+    return url.toString()
+  }
+  catch {
+    return (u || '').trim()
+  }
+}
+
+function providerFamily(u = '') {
+  const s = (u || '').toLowerCase()
+  if (s.includes('youtube.com/') || s.includes('youtu.be/')) {
+    return 'youtube'
+  }
+  if (s.includes('soundcloud.com/')) {
+    return 'soundcloud'
+  }
+  if (s.includes('bandcamp.com/')) {
+    return 'bandcamp'
+  }
+  if (s.includes('open.spotify.com/')) {
+    return 'spotify'
+  }
+  if (s.includes('music.apple.com/')) {
+    return 'applemusic'
+  }
+  return null
+}
+
+function getHrefFromPreviewHtml(html = '', cheerioRef = cheerio) {
+  try {
+    const $ = cheerioRef.load(html)
+    const href = $('a[href]').first().attr('href') || ''
+    return normalizeUrl(href)
+  }
+  catch {
+    return ''
+  }
+}
+
 const allowedIframeAttributes = new Set([
   'allow',
   'allowfullscreen',
@@ -327,46 +371,25 @@ function getAudio($, item, { staticProxy }) {
 
   audios.remove()
 
-  return audioItems?.filter(Boolean) ?? []
-}
-
-function getEmbedFamilyFromUrl(rawUrl) {
-  if (typeof rawUrl !== 'string' || !rawUrl) {
-    return null
+  const filtered = audioItems?.filter(Boolean) ?? []
+  if (!filtered.length) {
+    return []
   }
 
-  try {
-    const hostname = new URL(rawUrl).hostname?.toLowerCase()
-
-    if (!hostname) {
-      return null
+  const seen = new Set()
+  return filtered.filter((item) => {
+    if (!item?.url) {
+      return false
     }
 
-    if (hostname === 'youtu.be' || hostname === 'youtube.com' || hostname.endsWith('.youtube.com')) {
-      return 'youtube'
+    const normalized = normalizeUrl(item.url)
+    if (seen.has(normalized)) {
+      return false
     }
 
-    if (hostname === 'open.spotify.com' || hostname.endsWith('.spotify.com')) {
-      return 'spotify'
-    }
-
-    if (hostname === 'music.apple.com' || hostname.endsWith('.music.apple.com')) {
-      return 'apple-music'
-    }
-
-    if (hostname === 'bandcamp.com' || hostname.endsWith('.bandcamp.com')) {
-      return 'bandcamp'
-    }
-
-    if (hostname === 'soundcloud.com' || hostname.endsWith('.soundcloud.com')) {
-      return 'soundcloud'
-    }
-
-    return null
-  }
-  catch {
-    return null
-  }
+    seen.add(normalized)
+    return true
+  })
 }
 
 const directDownloadExtensions = new Set([
@@ -440,7 +463,7 @@ function getLinkPreview($, item, { staticProxy, index, embeds }) {
   const description = $(item).find('.link_preview_description')?.text()
 
   const href = link?.attr('href')?.trim()
-  const previewFamily = getEmbedFamilyFromUrl(href)
+  const previewFamily = providerFamily(href)
   const normalizedHref = normalizeUrlText(href)
 
   if (isDirectDownloadUrl(href)) {
@@ -448,7 +471,7 @@ function getLinkPreview($, item, { staticProxy, index, embeds }) {
   }
 
   if (previewFamily && Array.isArray(embeds) && embeds.length > 0) {
-    const hasMatchingEmbed = embeds.some(embed => getEmbedFamilyFromUrl(embed?.url) === previewFamily)
+    const hasMatchingEmbed = embeds.some(embed => providerFamily(embed?.url) === previewFamily)
 
     if (hasMatchingEmbed) {
       return ''
@@ -694,7 +717,6 @@ function getPost($, item, { channel, staticProxy, index = 0, baseUrl = '/', enab
       $.html($(item).find('.tgme_widget_message_document_wrap')),
       $.html($(item).find('.tgme_widget_message_video_player.not_supported')),
       $.html($(item).find('.tgme_widget_message_location_wrap')),
-      linkPreview,
     ].filter(Boolean).join('').replace(/(url\(["'])((https?:)?\/\/)/g, (match, p1, p2, _p3) => {
       if (p2 === '//') {
         p2 = 'https://'
@@ -705,7 +727,33 @@ function getPost($, item, { channel, staticProxy, index = 0, baseUrl = '/', enab
       return `${p1}${staticProxy}${p2}`
     }),
     media: Array.isArray(media) ? media : [],
-    embeds: Array.isArray(embeds) ? embeds : [],
+    embeds: (() => {
+      const base = Array.isArray(embeds) ? embeds.slice() : []
+      if (linkPreview) {
+        const previewUrl = getHrefFromPreviewHtml(linkPreview, cheerio)
+        const normalizedPreviewUrl = previewUrl ? normalizeUrl(previewUrl) : ''
+        const previewProvider = providerFamily(normalizedPreviewUrl)
+
+        const hasProviderEmbed = base.some((embed) => {
+          const candidateUrl = normalizeUrl(embed?.url || embed?.href || '')
+          if (normalizedPreviewUrl && candidateUrl === normalizedPreviewUrl) {
+            return true
+          }
+
+          const candidateFamily = providerFamily(candidateUrl)
+          return Boolean(previewProvider && candidateFamily && candidateFamily === previewProvider)
+        })
+
+        if (!hasProviderEmbed) {
+          base.push({
+            url: normalizedPreviewUrl || '',
+            oembedHtml: linkPreview,
+          })
+        }
+      }
+
+      return base
+    })(),
     embedsEnabled: Boolean(enableEmbeds),
   }
 }

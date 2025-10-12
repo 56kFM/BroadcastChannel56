@@ -4,7 +4,7 @@ import 'prismjs/themes/prism.css'
 import dayjs from '../lib/dayjs'
 import { getEnv } from '../lib/env'
 import { sanitizeHTML } from '../utils/sanitizeHTML'
-import { linkAudioToPlayer } from '../utils/transformAudioLinks'
+import { extractAudioLinks } from '../utils/transformAudioLinks'
 import { validateEnv } from '../utils/env'
 import Embed from './Embed.astro'
 import Media from './Media.astro'
@@ -108,8 +108,7 @@ let shouldRenderEmbeds = false
 let renderError: Error | null = null
 
 const fallbackText = typeof post?.text === 'string' ? post.text : ''
-const fallbackTransformed = fallbackText ? linkAudioToPlayer(fallbackText) : ''
-const fallbackSafeHtml = fallbackTransformed ? sanitizeHTML(fallbackTransformed) : ''
+const fallbackSafeHtml = fallbackText ? sanitizeHTML(fallbackText) : ''
 const fallbackLinkUrls = new Set<string>()
 
 const allowListedUrl = (value: string | undefined | null) => {
@@ -147,8 +146,7 @@ const fallbackLinks = Array.from(fallbackLinkUrls).map((url) => ({ url }))
 
 try {
   const rawContent = typeof post?.content === 'string' ? post.content : ''
-  const transformedContent = rawContent ? linkAudioToPlayer(rawContent) : ''
-  const sanitizedContent = transformedContent ? sanitizeHTML(transformedContent) : ''
+  const sanitizedContent = rawContent ? sanitizeHTML(rawContent) : ''
   safeContent = sanitizedContent
   mediaList = Array.isArray(post?.media)
     ? post.media.filter((media): media is MediaItem =>
@@ -156,10 +154,54 @@ try {
       )
     : []
   embedList = Array.isArray(post?.embeds)
-    ? post.embeds.filter((embed): embed is EmbedItem =>
-        Boolean(embed && typeof embed.url === 'string' && embed.url.length > 0),
-      )
+    ? post.embeds
+        .filter((embed): embed is EmbedItem =>
+          Boolean(
+            embed && ((typeof embed.url === 'string' && embed.url.length > 0) || typeof embed.oembedHtml === 'string'),
+          ),
+        )
+        .map((embed) => ({
+          ...embed,
+          url: typeof embed.url === 'string' ? embed.url : '',
+        }))
     : []
+  const normalizeAudioUrl = (value: string | undefined) => {
+    if (typeof value !== 'string' || value.length === 0) {
+      return ''
+    }
+
+    try {
+      const normalized = new URL(value.replace(/^http:\/\//, 'https://'))
+      normalized.hash = ''
+      normalized.pathname = normalized.pathname.replace(/\/+$/, '')
+      return normalized.toString()
+    } catch {
+      return value.trim()
+    }
+  }
+
+  const existingAudio = new Set<string>()
+  mediaList.forEach((media) => {
+    if (media?.kind === 'audio' && typeof media.url === 'string') {
+      existingAudio.add(normalizeAudioUrl(media.url))
+    }
+  })
+
+  const contentTextForAudio = typeof post?.text === 'string' ? post.text : ''
+  const audioFromText = extractAudioLinks(contentTextForAudio)
+  for (const audio of audioFromText) {
+    if (!audio?.url) {
+      continue
+    }
+
+    const normalized = normalizeAudioUrl(audio.url)
+    if (!normalized || existingAudio.has(normalized)) {
+      continue
+    }
+
+    mediaList.push({ kind: 'audio', url: audio.url, mime: audio.mime })
+    existingAudio.add(normalized)
+  }
   const embedsEnabled = envEmbedsEnabled && (post?.embedsEnabled ?? envEmbedsEnabled)
   shouldRenderEmbeds = embedsEnabled && embedList.length > 0
 } catch (error) {
