@@ -15,7 +15,7 @@
     "postinstall": "test -d .git && simple-git-hooks || true"
   },
   "dependencies": {
-    "@astrojs/rss": "^4.0.7",
+    "@astrojs/rss": "^4.0.12",
     "@sentry/astro": "^8.27.0",
     "cheerio": "1.0.0-rc.12",
     "dayjs": "^1.11.13",
@@ -28,10 +28,10 @@
   },
   "devDependencies": {
     "@antfu/eslint-config": "^3.0.0",
-    "@astrojs/cloudflare": "^11.0.4",
-    "@astrojs/node": "^8.3.3",
+    "@astrojs/cloudflare": "^12.6.10",
+    "@astrojs/node": "^9.4.6",
     "@types/prismjs": "^1.26.5",
-    "astro": "^4.15.1",
+    "astro": "^5.14.4",
     "astro-eslint-parser": "^1.0.2",
     "astro-seo": "^0.8.4",
     "autoprefixer": "^10.4.20",
