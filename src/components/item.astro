@@ -5,7 +5,6 @@ import dayjs from '../lib/dayjs'
 import { getEnv } from '../lib/env'
 import { sanitizeHTML } from '../utils/sanitizeHTML'
 import { linkAudioToPlayer } from '../utils/transformAudioLinks'
-import { expandTelegramAudioLinks } from '../utils/expandTelegramAudio'
 import { validateEnv } from '../utils/env'
 import Embed from './Embed.astro'
 import Media from './Media.astro'
@@ -50,8 +49,7 @@ let shouldRenderEmbeds = false
 let renderError: Error | null = null
 
 const fallbackText = typeof post?.text === 'string' ? post.text : ''
-const fallbackExpanded = fallbackText ? await expandTelegramAudioLinks(fallbackText) : ''
-const fallbackTransformed = fallbackExpanded ? linkAudioToPlayer(fallbackExpanded) : ''
+const fallbackTransformed = fallbackText ? linkAudioToPlayer(fallbackText) : ''
 const fallbackSafeHtml = fallbackTransformed ? sanitizeHTML(fallbackTransformed) : ''
 const fallbackLinkUrls = new Set<string>()
 
@@ -90,8 +88,7 @@ const fallbackLinks = Array.from(fallbackLinkUrls).map((url) => ({ url }))
 
 try {
   const rawContent = typeof post?.content === 'string' ? post.content : ''
-  const expandedContent = rawContent ? await expandTelegramAudioLinks(rawContent) : ''
-  const transformedContent = expandedContent ? linkAudioToPlayer(expandedContent) : ''
+  const transformedContent = rawContent ? linkAudioToPlayer(rawContent) : ''
   safeContent = transformedContent ? sanitizeHTML(transformedContent) : ''
   mediaList = Array.isArray(post?.media)
     ? post.media.filter((media): media is MediaItem =>
