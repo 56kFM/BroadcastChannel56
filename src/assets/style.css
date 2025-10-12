@@ -394,7 +394,7 @@ a.site-title:focus-visible {
   border: 1px solid var(--border-color);
   border-radius: 0;
   background-color: var(--cell-background-color);
-  box-shadow: var(--shadow-sm);
+  box-shadow: none;
 }
 
 audio::-webkit-media-controls-panel {
