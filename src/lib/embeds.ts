@@ -8,7 +8,8 @@ function appendDarkModeStyles(style: string) {
   return `${trimmed};color-scheme:dark;background-color:#000;`
 }
 
-const bandcampIframeStyle = 'border: 0; width: 100%; height: 120px;'
+const bandcampIframeStyle =
+  'border: 0; width: 100%; max-width: 700px; height: 120px; display: block; margin: 0 auto;'
 
 function bandcampPresetIframeFromId(idType: 'album' | 'track', id: string) {
   const src = `https://bandcamp.com/EmbeddedPlayer/${idType}=${id}/size=large/bgcol=333333/linkcol=0f91ff/tracklist=false/artwork=small/transparent=true/`
