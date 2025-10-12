@@ -107,7 +107,7 @@ function normalizeUrl(u = '') {
   }
 }
 
-function providerFamily(u = '') {
+function getEmbedFamilyFromUrl(u = '') {
   const s = (u || '').toLowerCase()
   if (s.includes('youtube.com/') || s.includes('youtu.be/')) {
     return 'youtube'
@@ -131,7 +131,7 @@ function getHrefFromPreviewHtml(html = '', cheerioRef = cheerio) {
   try {
     const $ = cheerioRef.load(html)
     const href = $('a[href]').first().attr('href') || ''
-    return normalizeUrl(href)
+    return href.trim()
   }
   catch {
     return ''
@@ -267,6 +267,17 @@ function extractEmbeddableLinks($, content) {
       }
 
       if (seen.has(href)) {
+        return
+      }
+
+      // Skip direct-download type URLs (mp3, zip, pdf, etc.)
+      if (isDirectDownloadUrl(href)) {
+        return
+      }
+
+      // Only collect known rich providers; ignore generic links here
+      const fam = getEmbedFamilyFromUrl(href)
+      if (!fam) {
         return
       }
 
@@ -463,7 +474,7 @@ function getLinkPreview($, item, { staticProxy, index, embeds }) {
   const description = $(item).find('.link_preview_description')?.text()
 
   const href = link?.attr('href')?.trim()
-  const previewFamily = providerFamily(href)
+  const previewFamily = getEmbedFamilyFromUrl(href)
   const normalizedHref = normalizeUrlText(href)
 
   if (isDirectDownloadUrl(href)) {
@@ -471,7 +482,7 @@ function getLinkPreview($, item, { staticProxy, index, embeds }) {
   }
 
   if (previewFamily && Array.isArray(embeds) && embeds.length > 0) {
-    const hasMatchingEmbed = embeds.some(embed => providerFamily(embed?.url) === previewFamily)
+    const hasMatchingEmbed = embeds.some(embed => getEmbedFamilyFromUrl(embed?.url) === previewFamily)
 
     if (hasMatchingEmbed) {
       return ''
@@ -730,23 +741,16 @@ function getPost($, item, { channel, staticProxy, index = 0, baseUrl = '/', enab
     embeds: (() => {
       const base = Array.isArray(embeds) ? embeds.slice() : []
       if (linkPreview) {
-        const previewUrl = getHrefFromPreviewHtml(linkPreview, cheerio)
-        const normalizedPreviewUrl = previewUrl ? normalizeUrl(previewUrl) : ''
-        const previewProvider = providerFamily(normalizedPreviewUrl)
-
-        const hasProviderEmbed = base.some((embed) => {
-          const candidateUrl = normalizeUrl(embed?.url || embed?.href || '')
-          if (normalizedPreviewUrl && candidateUrl === normalizedPreviewUrl) {
-            return true
-          }
-
-          const candidateFamily = providerFamily(candidateUrl)
-          return Boolean(previewProvider && candidateFamily && candidateFamily === previewProvider)
+        const href = getHrefFromPreviewHtml(linkPreview, cheerio)
+        const previewFamily = getEmbedFamilyFromUrl(href)
+        const hasProvider = base.some((embed) => {
+          const fam = getEmbedFamilyFromUrl(embed?.url)
+          return (embed?.url && href && embed.url === href) || (fam && fam === previewFamily)
         })
 
-        if (!hasProviderEmbed) {
+        if (!hasProvider) {
           base.push({
-            url: normalizedPreviewUrl || '',
+            url: href || undefined,
             oembedHtml: linkPreview,
           })
         }
