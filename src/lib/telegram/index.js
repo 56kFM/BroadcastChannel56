@@ -369,6 +369,71 @@ function getEmbedFamilyFromUrl(rawUrl) {
   }
 }
 
+const directDownloadExtensions = new Set([
+  '.7z',
+  '.aac',
+  '.apk',
+  '.avi',
+  '.bz2',
+  '.doc',
+  '.docx',
+  '.flac',
+  '.gif',
+  '.gz',
+  '.jpeg',
+  '.jpg',
+  '.m4a',
+  '.m4v',
+  '.mkv',
+  '.mov',
+  '.mp3',
+  '.mp4',
+  '.ogg',
+  '.oga',
+  '.ogv',
+  '.pdf',
+  '.png',
+  '.ppt',
+  '.pptx',
+  '.rar',
+  '.svg',
+  '.tar',
+  '.tgz',
+  '.wav',
+  '.webm',
+  '.webp',
+  '.xls',
+  '.xlsx',
+  '.xz',
+  '.zip',
+])
+
+function isDirectDownloadUrl(rawUrl) {
+  if (typeof rawUrl !== 'string' || rawUrl.length === 0) {
+    return false
+  }
+
+  try {
+    const url = new URL(rawUrl)
+    const pathname = url.pathname?.toLowerCase() ?? ''
+
+    for (const ext of directDownloadExtensions) {
+      if (pathname.endsWith(ext)) {
+        return true
+      }
+    }
+
+    if (url.searchParams.has('file')) {
+      return true
+    }
+  }
+  catch {
+    return false
+  }
+
+  return false
+}
+
 function getLinkPreview($, item, { staticProxy, index, embeds }) {
   const link = $(item).find('.tgme_widget_message_link_preview')
   const title = $(item).find('.link_preview_title')?.text() || $(item).find('.link_preview_site_name')?.text()
@@ -376,6 +441,10 @@ function getLinkPreview($, item, { staticProxy, index, embeds }) {
 
   const href = link?.attr('href')?.trim()
   const previewFamily = getEmbedFamilyFromUrl(href)
+
+  if (isDirectDownloadUrl(href)) {
+    return ''
+  }
 
   if (previewFamily && Array.isArray(embeds) && embeds.length > 0) {
     const hasMatchingEmbed = embeds.some(embed => getEmbedFamilyFromUrl(embed?.url) === previewFamily)
@@ -386,6 +455,7 @@ function getLinkPreview($, item, { staticProxy, index, embeds }) {
   }
 
   link?.attr('target', '_blank').attr('rel', 'noopener').attr('title', description)
+  link?.find('.link_preview_url')?.remove()
 
   const image = $(item).find('.link_preview_image')
   const src = image?.attr('style')?.match(/url\(["'](.*?)["']/i)?.[1]
