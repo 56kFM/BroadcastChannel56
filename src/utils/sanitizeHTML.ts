@@ -13,12 +13,56 @@ const allowedIframeHostnames = [
   'w.soundcloud.com',
   'open.spotify.com',
   'embed.music.apple.com',
-  'www.youtube.com',
   'youtube.com',
   'youtube-nocookie.com',
-  'www.youtube-nocookie.com',
   'player.vimeo.com',
 ]
+
+const allowedIframeAttributes = [
+  'src',
+  'style',
+  'loading',
+  'seamless',
+  'allow',
+  'allowfullscreen',
+  'referrerpolicy',
+  'sandbox',
+  'width',
+  'height',
+  'title',
+  'data-preserve-embed',
+]
+
+const isAllowedIframeHostname = (value: string): boolean => {
+  const normalizedValue = value.toLowerCase().trim()
+
+  return allowedIframeHostnames.some((allowedHostname) => {
+    const normalizedAllowed = allowedHostname.toLowerCase()
+    if (normalizedValue === normalizedAllowed) {
+      return true
+    }
+
+    return normalizedValue.endsWith(`.${normalizedAllowed}`)
+  })
+}
+
+const isAllowedIframeSrc = (value?: string): boolean => {
+  if (!value) {
+    return false
+  }
+
+  try {
+    const url = new URL(value.trim())
+    if (!['http:', 'https:'].includes(url.protocol)) {
+      return false
+    }
+
+    return isAllowedIframeHostname(url.hostname)
+  }
+  catch {
+    return false
+  }
+}
 
 const extendAttributes = (
   defaults: AttributeMap,
@@ -84,20 +128,7 @@ export function sanitizeHTML(html: string): string {
       'decoding',
       'referrerpolicy',
     ]),
-    iframe: [
-      'src',
-      'style',
-      'loading',
-      'allow',
-      'allowfullscreen',
-      'referrerpolicy',
-      'sandbox',
-      'width',
-      'height',
-      'title',
-      'seamless',
-      'data-preserve-embed',
-    ],
+    iframe: allowedIframeAttributes,
     video: extendAttributes(defaults, 'video', [
       'controls',
       'autoplay',
@@ -127,6 +158,13 @@ export function sanitizeHTML(html: string): string {
         }
         return { tagName, attribs }
       },
+    },
+    exclusiveFilter: (frame) => {
+      if (frame.tag === 'iframe') {
+        return !isAllowedIframeSrc(frame.attribs?.src)
+      }
+
+      return false
     },
   })
 }
