@@ -10,8 +10,8 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
+    "lint": "eslint \"src/**/*.{ts,tsx,js,jsx,astro}\"",
+    "lint:fix": "eslint \"src/**/*.{ts,tsx,js,jsx,astro}\" --fix",
     "postinstall": "test -d .git && simple-git-hooks || true"
   },
   "dependencies": {
@@ -49,7 +49,7 @@
     "pre-commit": "pnpm lint-staged"
   },
   "lint-staged": {
-    "*": "eslint --fix"
+    "src/**/*.{ts,tsx,js,jsx,astro}": "eslint --fix"
   },
   "browserslist": [
     "defaults"
