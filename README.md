@@ -74,12 +74,10 @@ COMMENTS=true
 
 ```
 
-## Audio playback
+### Audio playback
 
-- Direct links to `.mp3`, `.ogg`, `.wav`, and `.m4a` files inside posts render as native `<audio>` players with metadata preloading.
-- Ensure your Content Security Policy allows Telegram media when deploying:
-  - `media-src https://*.telegram.org https://*.telegram-cdn.org https://cdn*.telegram.org data: blob:`
-- Sanitization keeps `<audio>` and `<source>` tags (including required attributes) so players remain functional while other content stays protected.
+Both direct audio links and Telegram "Audio" attachments are rendered as native players.
+Requires that the Telegram channel’s “Restrict Saving Content” setting is disabled for media to resolve.
 
 ## 🙋🏻 FAQs
 
