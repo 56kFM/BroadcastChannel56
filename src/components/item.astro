@@ -13,6 +13,8 @@ import Media from './Media.astro'
 const { BASE_URL } = Astro.locals
 const { post, isItem } = Astro.props
 
+const DEBUG_EMBEDS = import.meta.env.DEBUG_EMBEDS === '1'
+
 const validatedEnv = validateEnv({
   env: import.meta.env,
   runtimeEnv: Astro.locals?.runtime?.env,
@@ -43,12 +45,13 @@ type EmbedItem = {
   oembedHtml?: string
 }
 
-let safeContent = ''
+let finalHtml = ''
 let mediaList: MediaItem[] = []
 let embedList: EmbedItem[] = []
 let shouldRenderEmbeds = false
 let renderError: Error | null = null
 
+const rawHtml = typeof post?.content === 'string' ? post.content : ''
 const fallbackText = typeof post?.text === 'string' ? post.text : ''
 const fallbackTransformed = fallbackText ? linkAudioToPlayer(fallbackText) : ''
 const fallbackSanitizedHtml = fallbackTransformed ? sanitizeHTML(fallbackTransformed) : ''
@@ -89,11 +92,10 @@ if (Array.isArray(post?.media)) {
 const fallbackLinks = Array.from(fallbackLinkUrls).map((url) => ({ url }))
 
 try {
-  const rawContent = typeof post?.content === 'string' ? post.content : ''
-  const transformedContent = rawContent ? linkAudioToPlayer(rawContent) : ''
+  const transformedContent = rawHtml ? linkAudioToPlayer(rawHtml) : ''
   const sanitizedContent = transformedContent ? sanitizeHTML(transformedContent) : ''
   const normalizedContent = sanitizedContent ? normalizeEmbeds(sanitizedContent) : ''
-  safeContent = normalizedContent
+  finalHtml = normalizedContent
   mediaList = Array.isArray(post?.media)
     ? post.media.filter((media): media is MediaItem =>
         Boolean(media && typeof media.url === 'string' && media.url.length > 0),
@@ -114,6 +116,10 @@ try {
       error: renderError,
     })
   }
+}
+
+if (DEBUG_EMBEDS && finalHtml.length > 0) {
+  console.warn('[Embeds TRACE] First 800 chars:', finalHtml.slice(0, 800))
 }
 
 const datetimeSource = typeof post?.datetime === 'string' ? post.datetime : ''
@@ -141,7 +147,7 @@ const timeago = datetime.isBefore(dayjs().subtract(1, 'w')) ? datetime.format('H
         </div>
       ) : (
         <Fragment>
-          {safeContent.length > 0 && <div class={`text-box content`} set:html={safeContent} />}
+          {finalHtml.length > 0 && <div class={`text-box content`} set:html={finalHtml} />}
 
           {mediaList.length > 0 && (
             <div class="media-list">
