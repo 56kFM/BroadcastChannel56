@@ -51,7 +51,8 @@ let renderError: Error | null = null
 
 const fallbackText = typeof post?.text === 'string' ? post.text : ''
 const fallbackTransformed = fallbackText ? linkAudioToPlayer(fallbackText) : ''
-const fallbackSafeHtml = fallbackTransformed ? normalizeEmbeds(sanitizeHTML(fallbackTransformed)) : ''
+const fallbackSanitizedHtml = fallbackTransformed ? sanitizeHTML(fallbackTransformed) : ''
+const fallbackSafeHtml = fallbackSanitizedHtml ? normalizeEmbeds(fallbackSanitizedHtml) : ''
 const fallbackLinkUrls = new Set<string>()
 
 const allowListedUrl = (value: string | undefined | null) => {
@@ -91,7 +92,8 @@ try {
   const rawContent = typeof post?.content === 'string' ? post.content : ''
   const transformedContent = rawContent ? linkAudioToPlayer(rawContent) : ''
   const sanitizedContent = transformedContent ? sanitizeHTML(transformedContent) : ''
-  safeContent = sanitizedContent ? normalizeEmbeds(sanitizedContent) : ''
+  const normalizedContent = sanitizedContent ? normalizeEmbeds(sanitizedContent) : ''
+  safeContent = normalizedContent
   mediaList = Array.isArray(post?.media)
     ? post.media.filter((media): media is MediaItem =>
         Boolean(media && typeof media.url === 'string' && media.url.length > 0),
