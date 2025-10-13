@@ -11,19 +11,26 @@ if (!normalizedTag) {
   return Astro.redirect('/tags/')
 }
 
-const channel = await getChannelInfo(Astro, {
-  tag: normalizedTag,
-})
+// Fetch current slice filtered by tag
+const channel = await getChannelInfo(Astro, { tag: normalizedTag })
 
+// Tag SEO
 const tagLabel = `#${normalizedTag}`
 channel.seo = {
   title: tagLabel,
   text: `Posts tagged with ${tagLabel}`,
 }
 
+// Base path for tag pagination links
 const paginationBasePath = `tags/${encodeURIComponent(normalizedTag)}/`
 ---
 
-<List channel={channel} before={false} after={false} paginationGap={true} paginationBasePath={paginationBasePath}>
+<List
+  channel={channel}
+  before={true}
+  after={true}
+  paginationGap={true}
+  paginationBasePath={paginationBasePath}
+>
   <TagHeader slot="header" channel={channel} tag={tagLabel} />
 </List>

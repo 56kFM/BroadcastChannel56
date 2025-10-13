@@ -1,12 +1,33 @@
 ---
+import List from '../../../../components/list.astro'
+import { getChannelInfo } from '../../../../lib/telegram'
 import { normalizeTag } from '../../../../lib/tags'
 
 const rawTagParam = typeof Astro.params.tag === 'string' ? Astro.params.tag : ''
 const normalizedTag = normalizeTag(rawTagParam)
+const cursor = Astro.params.cursor
 
 if (!normalizedTag) {
   return Astro.redirect('/tags/')
 }
 
-return Astro.redirect(`/tags/${encodeURIComponent(normalizedTag)}/`)
+// Fetch the "newer" slice for this tag
+const channel = await getChannelInfo(Astro, { tag: normalizedTag, after: cursor })
+
+// Guard: never show an empty page
+if (!Array.isArray(channel?.posts) || channel.posts.length === 0) {
+  return Astro.redirect(`/tags/${encodeURIComponent(normalizedTag)}/`)
+}
+
+channel.seo = { noindex: true }
+
+const paginationBasePath = `tags/${encodeURIComponent(normalizedTag)}/`
 ---
+
+<List
+  channel={channel}
+  before={true}
+  after={true}
+  paginationGap={true}
+  paginationBasePath={paginationBasePath}
+/>
