@@ -1,8 +1,4 @@
 ---
-// Emergency hotfix: minimal, working Embed component that restores site rendering.
-// It handles first-class providers (YouTube, Bandcamp, Spotify, Apple Music) and falls back to a plain link.
-// This bypasses the new resolve/oEmbed/OG layers to get the site back up immediately.
-
 import YouTubeEmbed from './embed/providers/YouTubeEmbed.astro'
 import BandcampEmbed from './embed/providers/BandcampEmbed.astro'
 import SpotifyEmbed from './embed/providers/SpotifyEmbed.astro'
@@ -23,15 +19,8 @@ const isBandcamp = u ? /(^|\.)bandcamp\.com$/i.test(u.hostname) : false
 const isSpotify = u ? /(^|\.)spotify\.com$/i.test(u.hostname) : false
 const isApple = u ? /(^|\.)music\.apple\.com$/i.test(u.hostname) : false
 
+// Internal links: same-tab; external links: new tab
 const isInternal = /^(?:\/(?!\/)|\.\/|\.\.\/|#)/u.test(url)
-
-const fallbackLink = isInternal ? (
-  <a href={url}>{url}</a>
-) : (
-  <a href={url} target="_blank" rel="noopener noreferrer">
-    {url}
-  </a>
-)
 ---
 
 {
@@ -43,7 +32,11 @@ const fallbackLink = isInternal ? (
     <SpotifyEmbed url={url} />
   ) : isApple ? (
     <AppleMusicEmbed url={url} />
+  ) : isInternal ? (
+    <a href={url}>{url}</a>
   ) : (
-    fallbackLink
+    <a href={url} target="_blank" rel="noopener noreferrer">
+      {url}
+    </a>
   )
 }
