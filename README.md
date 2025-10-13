@@ -74,11 +74,6 @@ COMMENTS=true
 
 ```
 
-### Audio playback
-
-Both direct audio links and Telegram "Audio" attachments are rendered as native players.
-Requires that the Telegram channel’s “Restrict Saving Content” setting is disabled for media to resolve.
-
 ## 🙋🏻 FAQs
 
 1. Why is the content empty after deployment?
