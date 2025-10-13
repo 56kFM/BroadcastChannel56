@@ -112,6 +112,9 @@ function getEmbedFamilyFromUrl(u = '') {
   if (s.includes('youtube.com/') || s.includes('youtu.be/')) {
     return 'youtube'
   }
+  if (s.includes('vimeo.com/') || s.includes('player.vimeo.com/')) {
+    return 'vimeo'
+  }
   if (s.includes('soundcloud.com/')) {
     return 'soundcloud'
   }
