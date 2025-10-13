@@ -74,7 +74,7 @@ export async function onRequest(context, next) {
     'style-src \'self\' \'unsafe-inline\'',
     'img-src \'self\' https: data:',
     'media-src \'self\' https:',
-    'frame-src \'self\' https: https://www.youtube-nocookie.com https://player.vimeo.com https://w.soundcloud.com https://bandcamp.com https://open.spotify.com https://embed.music.apple.com https://comments.app https://t.me',
+    'frame-src \'self\' https: https://www.youtube-nocookie.com https://www.youtube.com https://player.vimeo.com https://open.spotify.com https://w.soundcloud.com https://bandcamp.com https://embed.music.apple.com https://comments.app https://t.me',
     'connect-src \'self\' https: https://*.telegram.org https://*.telegram-cdn.org',
     'frame-ancestors \'none\'',
     'upgrade-insecure-requests',
