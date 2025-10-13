@@ -25,12 +25,6 @@ channel.seo = {
 const paginationBasePath = `tags/${encodeURIComponent(normalizedTag)}/`
 ---
 
-<List
-  channel={channel}
-  before={true}
-  after={true}
-  paginationGap={true}
-  paginationBasePath={paginationBasePath}
->
+<List channel={channel} before after paginationGap paginationBasePath={paginationBasePath}>
   <TagHeader slot="header" channel={channel} tag={tagLabel} />
 </List>

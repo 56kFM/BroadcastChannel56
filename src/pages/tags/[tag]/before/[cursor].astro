@@ -24,10 +24,4 @@ channel.seo = { noindex: true }
 const paginationBasePath = `tags/${encodeURIComponent(normalizedTag)}/`
 ---
 
-<List
-  channel={channel}
-  before={true}
-  after={true}
-  paginationGap={true}
-  paginationBasePath={paginationBasePath}
-/>
+<List channel={channel} before after paginationGap paginationBasePath={paginationBasePath} />
