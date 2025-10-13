@@ -14,6 +14,9 @@ importers:
       '@sentry/astro':
         specifier: ^8.27.0
         version: 8.27.0(astro@5.14.4(@types/node@22.0.0)(rollup@4.52.4)(typescript@5.5.4)(yaml@2.5.0))
+      astro-seo:
+        specifier: ^0.8.4
+        version: 0.8.4(prettier-plugin-astro@0.14.1)(prettier@3.3.3)(typescript@5.5.4)
       cheerio:
         specifier: 1.0.0-rc.12
         version: 1.0.0-rc.12
@@ -57,9 +60,6 @@ importers:
       astro-eslint-parser:
         specifier: ^1.0.2
         version: 1.0.2(typescript@5.5.4)
-      astro-seo:
-        specifier: ^0.8.4
-        version: 0.8.4(prettier-plugin-astro@0.14.1)(prettier@3.3.3)(typescript@5.5.4)
       autoprefixer:
         specifier: ^10.4.20
         version: 10.4.20(postcss@8.5.6)
@@ -10213,7 +10213,7 @@ snapshots:
     dependencies:
       cac: 6.7.14
       debug: 4.4.3
-      es-module-lexer: 1.5.4
+      es-module-lexer: 1.7.0
       pathe: 1.1.2
       vite: 5.4.2(@types/node@22.0.0)
     transitivePeerDependencies:
@@ -10231,7 +10231,7 @@ snapshots:
   vite@5.4.2(@types/node@22.0.0):
     dependencies:
       esbuild: 0.21.5
-      postcss: 8.4.41
+      postcss: 8.5.6
       rollup: 4.52.4
     optionalDependencies:
       '@types/node': 22.0.0
