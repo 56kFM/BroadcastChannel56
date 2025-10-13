@@ -48,8 +48,8 @@ const paginationClassList = {
   <div class:list={paginationClassList}>
     {
       hasOlderPosts ? (
-        <a href={beforeHref} title="Older posts" class="page">
-          Older
+        <a href={beforeHref} title="before" class="page">
+          ◀◀
         </a>
       ) : (
         <span class="page-placeholder">&nbsp;</span>
@@ -59,8 +59,8 @@ const paginationClassList = {
     <div class="pages-info"></div>
     {
       hasNewerPosts ? (
-        <a href={afterHref} title="Newer posts" class="page">
-          Newer
+        <a href={afterHref} title="after" class="page">
+          ▶▶
         </a>
       ) : (
         <span class="page-placeholder">&nbsp;</span>
