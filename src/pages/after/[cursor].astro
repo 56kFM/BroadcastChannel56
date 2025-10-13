@@ -6,6 +6,11 @@ const channel = await getChannelInfo(Astro, {
   after: Astro.params.cursor,
 })
 
+// Guard: never show an empty page
+if (!Array.isArray(channel?.posts) || channel.posts.length === 0) {
+  return Astro.redirect('/')
+}
+
 channel.seo = {
   noindex: true,
 }
