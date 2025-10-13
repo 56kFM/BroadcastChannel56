@@ -152,9 +152,20 @@ export function sanitizeHTML(html: string): string {
     nonTextTags: ['audio', 'video', 'iframe'],
     transformTags: {
       a: (tagName, attribs) => {
-        if (attribs.href) {
-          attribs.rel = attribs.rel ?? 'noopener noreferrer'
-          attribs.target = attribs.target ?? '_blank'
+        if (attribs?.href) {
+          const href = String(attribs.href).trim()
+
+          const isInternal = /^(?:\/(?!\/)|\.\/|\.\.\/|#)/u.test(href)
+
+          if (isInternal) {
+            if (attribs.target === '_blank') {
+              delete attribs.target
+            }
+          }
+          else {
+            if (!attribs.target) attribs.target = '_blank'
+            if (!attribs.rel) attribs.rel = 'noopener noreferrer'
+          }
         }
         return { tagName, attribs }
       },
