@@ -1,11 +1,2 @@
 /*
-  These rules apply to all paths
-*/
- /*
-   Content-Security-Policy: default-src 'self';
-   img-src * data: blob:;
-   media-src 'self' https://*.telegram.org https://*.telegram-cdn.org https://cdn*.telegram.org data: blob:;
-   style-src 'self' 'unsafe-inline';
-   script-src 'self' https://telegram.org https://*.telegram.org;
-   frame-src https://comments.app https://t.me;
-   connect-src 'self' https://*.telegram.org https://*.telegram-cdn.org;
+  Content-Security-Policy: default-src 'self'; img-src * data: blob:; media-src 'self' https://*.telegram.org https://*.telegram-cdn.org https://cdn*.telegram.org data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' https://telegram.org https://*.telegram.org; frame-src https://comments.app https://t.me; connect-src 'self' https://*.telegram.org https://*.telegram-cdn.org
