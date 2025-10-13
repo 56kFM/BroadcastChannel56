@@ -150,11 +150,22 @@ export function sanitizeHTML(html: string): string {
     allowedSchemes: ['http', 'https', 'data', 'blob'],
     allowedIframeHostnames,
     nonTextTags: ['audio', 'video', 'iframe'],
+    
     transformTags: {
       a: (tagName, attribs) => {
         if (attribs.href) {
-          attribs.rel = attribs.rel ?? 'noopener noreferrer'
-          attribs.target = attribs.target ?? '_blank'
+          const href = String(attribs.href).trim()
+          // Internal links: start with "/", "./", "../", or "#"
+          const isInternal = /^(?:\/(?!\/)|\.\/|\.\.\/|#)/u.test(href)
+          if (!isInternal) {
+            attribs.rel = attribs.rel ?? 'noopener noreferrer'
+            attribs.target = attribs.target ?? '_blank'
+          } else {
+            // Ensure internal links open in the same tab
+            if (attribs.target === '_blank') {
+              delete attribs.target
+            }
+          }
         }
         return { tagName, attribs }
       },
