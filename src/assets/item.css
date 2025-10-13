@@ -39,6 +39,11 @@
   background-color: var(--cell-background-color);
 }
 
+
+.embed-item {
+  content-visibility: auto;
+  contain: content;
+}
 .embed-item > a {
   word-break: break-all;
 }
