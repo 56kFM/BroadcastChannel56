@@ -391,7 +391,7 @@ a.site-title:focus-visible {
 .video-box video,
 .audio-box audio {
   width: 100%;
-  border: 1px solid var(--border-color);
+  border: none;
   border-radius: 0;
   background-color: var(--cell-background-color);
   box-shadow: none;
