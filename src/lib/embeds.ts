@@ -5,7 +5,7 @@ const esc = (s: string) =>
 
 function appendDarkModeStyles(style: string) {
   const trimmed = style.trim().replace(/;\s*$/u, '')
-  return `${trimmed};color-scheme:dark;background-color:#000;`
+  return `${trimmed};color-scheme:dark;background-color:var(--cell-background-color);`
 }
 
 const bandcampIframeStyle =
