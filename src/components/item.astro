@@ -39,6 +39,7 @@ type MediaItem = {
 
 type EmbedItem = {
   url: string
+  oembedHtml?: string
 }
 
 // --- Bandcamp-only helpers (local to this file) ---
@@ -154,7 +155,11 @@ try {
     : []
   embedList = Array.isArray(post?.embeds)
     ? post.embeds
-        .filter((embed): embed is EmbedItem => Boolean(embed && typeof embed.url === 'string' && embed.url.length > 0))
+        .filter((embed): embed is EmbedItem =>
+          Boolean(
+            embed && ((typeof embed.url === 'string' && embed.url.length > 0) || typeof embed.oembedHtml === 'string'),
+          ),
+        )
         .map((embed) => ({
           ...embed,
           url: typeof embed.url === 'string' ? embed.url : '',
@@ -251,7 +256,7 @@ const timeago = datetime.isBefore(dayjs().subtract(1, 'w')) ? datetime.format('H
             <div class="embed-list">
               {embedList.map((embed, index) => (
                 <div class="embed-item" key={`embed-${post.id ?? index}-${index}`}>
-                  <Embed url={embed.url} />
+                  <Embed url={embed.url} oembedHtml={embed.oembedHtml} />
                 </div>
               ))}
             </div>
