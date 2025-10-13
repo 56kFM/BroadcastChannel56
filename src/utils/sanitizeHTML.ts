@@ -153,8 +153,18 @@ export function sanitizeHTML(html: string): string {
     transformTags: {
       a: (tagName, attribs) => {
         if (attribs.href) {
-          attribs.rel = attribs.rel ?? 'noopener noreferrer'
-          attribs.target = attribs.target ?? '_blank'
+          const href = attribs.href.trim()
+          const isFragmentLink = href.startsWith('#')
+
+          if (isFragmentLink) {
+            if (attribs.target === '_blank') {
+              delete attribs.target
+            }
+          }
+          else {
+            attribs.rel = attribs.rel ?? 'noopener noreferrer'
+            attribs.target = attribs.target ?? '_blank'
+          }
         }
         return { tagName, attribs }
       },
