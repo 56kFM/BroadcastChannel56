@@ -3,23 +3,26 @@ import YouTubeEmbed from './embed/providers/YouTubeEmbed.astro'
 import BandcampEmbed from './embed/providers/BandcampEmbed.astro'
 import SpotifyEmbed from './embed/providers/SpotifyEmbed.astro'
 import AppleMusicEmbed from './embed/providers/AppleMusicEmbed.astro'
+import SoundCloudEmbed from './embed/providers/SoundCloudEmbed.astro'
+import WebsitePreview from './embed/WebsitePreview.astro'
 
 const { url } = Astro.props as { url: string }
 
-let u: URL | null = null
-try {
-  u = new URL(url)
-} catch {
-  u = null
-}
+const u = (() => {
+  try {
+    return new URL(url)
+  } catch {
+    return null
+  }
+})()
+const host = u?.hostname ?? ''
 
-// Simple host checks for known providers
-const isYouTube = u ? /(^|\.)youtube\.com$|(^|\.)youtu\.be$/i.test(u.hostname) : false
-const isBandcamp = u ? /(^|\.)bandcamp\.com$/i.test(u.hostname) : false
-const isSpotify = u ? /(^|\.)spotify\.com$/i.test(u.hostname) : false
-const isApple = u ? /(^|\.)music\.apple\.com$/i.test(u.hostname) : false
+const isYouTube = u ? /(^|\.)youtube\.com$|(^|\.)youtu\.be$/i.test(host) : false
+const isBandcamp = u ? /(^|\.)bandcamp\.com$/i.test(host) : false
+const isSpotify = u ? /(^|\.)spotify\.com$/i.test(host) : false
+const isApple = u ? /(^|\.)music\.apple\.com$/i.test(host) : false
+const isSoundCloud = u ? /(^|\.)soundcloud\.com$|(^|\.)w\.soundcloud\.com$/i.test(host) : false
 
-// Internal links: same-tab; external links: new tab
 const isInternal = /^(?:\/(?!\/)|\.\/|\.\.\/|#)/u.test(url)
 ---
 
@@ -32,11 +35,11 @@ const isInternal = /^(?:\/(?!\/)|\.\/|\.\.\/|#)/u.test(url)
     <SpotifyEmbed url={url} />
   ) : isApple ? (
     <AppleMusicEmbed url={url} />
+  ) : isSoundCloud ? (
+    <SoundCloudEmbed url={url} />
   ) : isInternal ? (
     <a href={url}>{url}</a>
   ) : (
-    <a href={url} target="_blank" rel="noopener noreferrer">
-      {url}
-    </a>
+    <WebsitePreview url={url} />
   )
 }
