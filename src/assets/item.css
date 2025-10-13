@@ -374,12 +374,10 @@
     transition: none !important;
   }
 }
-/* BEGIN direct: telegram preview fix v2 (square-left, forced) */
-/* Hard override: ensure the preview becomes a two-column layout with a small square image on the left.
-   Uses higher specificity and !important to beat earlier hero rules. */
-
+/* BEGIN direct: telegram preview fix v4 (strict square-left) */
 :root {
-  --link-preview-thumb: 4.5rem;
+  /* Wider thumb for a nicer square next to text (change to taste) */
+  --link-preview-thumb: 6.25rem;
 }
 
 .tgme_widget_message_link_preview {
@@ -389,37 +387,33 @@
 }
 
 .tgme_widget_message_link_preview:has(.link_preview_image) {
-  display: grid; /* already grid earlier, but reassert here */
-  grid-template-columns: var(--link-preview-thumb, 4.5rem) minmax(0, 1fr) !important;
+  display: grid !important;
+  grid-template-columns: var(--link-preview-thumb, 6.25rem) minmax(0, 1fr) !important;
   gap: 0 !important;
   padding: 0 !important;
   align-items: start !important;
+  overflow: hidden !important;
 }
 
-/* Force the image box to live in column 1 at the top-left and be a square */
+/* Square thumbnail in the first column; strictly square, top-left */
 .tgme_widget_message_link_preview:has(.link_preview_image) .link_preview_image {
   grid-column: 1 !important;
   grid-row: 1 !important;
-  align-self: start !important;
-  justify-self: stretch !important;
+  place-self: start stretch !important;
+  display: block !important;
   width: 100% !important;
-  height: auto !important;
-  aspect-ratio: 1 / 1 !important;
-  object-fit: cover !important;
+  height: auto !important;       /* computed from aspect ratio */
+  aspect-ratio: 1 / 1 !important;/* enforces perfect square based on width */
+  object-fit: cover !important;   /* fill the square (crop if necessary) */
   margin: 0 !important;
 }
 
-/* All text to column 2; allow wrapping without overflow */
+/* Text goes in column 2 and wraps safely */
 .tgme_widget_message_link_preview:has(.link_preview_image) .link_preview_site_name,
 .tgme_widget_message_link_preview:has(.link_preview_image) .link_preview_title,
 .tgme_widget_message_link_preview:has(.link_preview_image) .link_preview_description {
   grid-column: 2 !important;
   padding-inline: var(--space-md) !important;
   min-width: 0 !important;
-  margin: 0; /* keep it compact; individual margins can still be set below */
 }
-
-/* Gentle top/bottom rhythm for text */
-.tgme_widget_message_link_preview:has(.link_preview_image) .link_preview_site_name { margin-top: var(--space-sm) !important; }
-.tgme_widget_message_link_preview:has(.link_preview_image) .link_preview_description { margin-bottom: var(--space-md) !important; }
-/* END direct: telegram preview fix v2 */
+/* END direct: telegram preview fix v4 */
