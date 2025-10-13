@@ -825,6 +825,26 @@ export async function getChannelInfo(Astro, { before = '', after = '', q = '', t
   const availableTags = Object.keys(tagIndex).sort((a, b) => a.localeCompare(b))
   const selectedTag = normalizedTag
   const filteredPosts = selectedTag ? (tagIndex[selectedTag] ?? []) : posts
+  // Determine whether there are actually older posts beyond this page.
+  // We probe the Telegram channel with ?before=<lastId> and see if any messages exist.
+  const lastId = (filteredPosts.at(-1)?.id) || (posts.at(-1)?.id)
+  let hasOlder = false
+  if (lastId) {
+    try {
+      const probeHtml = await $fetch(url, {
+        headers,
+        query: { before: lastId },
+        retry: 2,
+        retryDelay: 100,
+      })
+      const $$ = cheerio.load(probeHtml, {}, false)
+      hasOlder = ($$('.tgme_widget_message_wrap')?.length ?? 0) > 0
+    }
+    catch {
+      // If the probe fails, fall back to the old heuristic to avoid breaking UX
+      hasOlder = Number.parseInt(String(lastId), 10) > 1
+    }
+  }
 
   const channelInfo = {
     posts: filteredPosts,
@@ -836,6 +856,7 @@ export async function getChannelInfo(Astro, { before = '', after = '', q = '', t
     tagIndex,
     selectedTag,
     embedsEnabled,
+    hasOlder,
   }
 
   cache.set(cacheKey, channelInfo)
