@@ -54,6 +54,37 @@ export function resolveEmbed(rawUrl: string): ResolvedEmbed | null {
         html: `<iframe loading="lazy" allow="accelerometer; clipboard-write; encrypted-media; picture-in-picture" allowfullscreen src="${esc(srcUrl.toString())}" style="${appendDarkModeStyles('width:100%;height:360px;border:0;')}"></iframe>`,
       }
     }
+    // Vimeo
+    if (/(^|\.)vimeo\.com$/.test(u.hostname) || /(^|\.)player\.vimeo\.com$/.test(u.hostname)) {
+      // Accept formats:
+      //  - https://vimeo.com/123456789
+      //  - https://player.vimeo.com/video/123456789
+      //  - Preserve any hash-based privacy tokens (?h=...)
+      const pathParts = u.pathname.split('/').filter(Boolean)
+      let id = ''
+      if (u.hostname === 'player.vimeo.com' && pathParts[0] === 'video' && pathParts[1]) {
+        id = pathParts[1]
+      } else {
+        // Find the first numeric segment
+        id = (pathParts.find((seg) => /^\d+$/.test(seg)) || '').trim()
+      }
+      if (!id) return null
+
+      const srcUrl = new URL(`https://player.vimeo.com/video/${encodeURIComponent(id)}`)
+      // Carry through privacy token if present
+      const h = u.searchParams.get('h')
+      if (h) srcUrl.searchParams.set('h', h)
+      // Compact, privacy-friendly
+      srcUrl.searchParams.set('dnt', '1')
+      srcUrl.searchParams.set('title', '0')
+      srcUrl.searchParams.set('byline', '0')
+      srcUrl.searchParams.set('portrait', '0')
+
+      return {
+        html: `<iframe loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen src="${esc(srcUrl.toString())}" style="${appendDarkModeStyles('width:100%;height:360px;border:0;')}"></iframe>`,
+      }
+    }
+
 
     // Spotify
     if (/(^|\.)open\.spotify\.com$/.test(u.hostname)) {
