@@ -107,26 +107,6 @@ function normalizeUrl(u = '') {
   }
 }
 
-function getEmbedFamilyFromUrl(u = '') {
-  const s = (u || '').toLowerCase()
-  if (s.includes('youtube.com/') || s.includes('youtu.be/')) {
-    return 'youtube'
-  }
-  if (s.includes('soundcloud.com/')) {
-    return 'soundcloud'
-  }
-  if (s.includes('bandcamp.com/')) {
-    return 'bandcamp'
-  }
-  if (s.includes('open.spotify.com/')) {
-    return 'spotify'
-  }
-  if (s.includes('music.apple.com/')) {
-    return 'applemusic'
-  }
-  return null
-}
-
 function getHrefFromPreviewHtml(html = '', cheerioRef = cheerio) {
   try {
     const $ = cheerioRef.load(html)
@@ -135,117 +115,6 @@ function getHrefFromPreviewHtml(html = '', cheerioRef = cheerio) {
   }
   catch {
     return ''
-  }
-}
-
-const allowedIframeAttributes = new Set([
-  'allow',
-  'allowfullscreen',
-  'allowtransparency',
-  'frameborder',
-  'height',
-  'loading',
-  'scrolling',
-  'sandbox',
-  'src',
-  'style',
-  'title',
-  'width',
-])
-
-function appendDarkModeStyles(style = '') {
-  const trimmed = style.trim().replace(/;\s*$/u, '')
-  const base = trimmed.length ? `${trimmed};` : ''
-  return `${base}color-scheme:dark;background-color:#000;`
-}
-
-function sanitizeIframeHtml(html) {
-  if (typeof html !== 'string') {
-    return ''
-  }
-
-  const match = html.match(/<iframe\b[^>]*><\/iframe>/i)
-  if (!match) {
-    return ''
-  }
-
-  const $ = cheerio.load(match[0])
-  const iframe = $('iframe').first()
-  if (!iframe?.length) {
-    return ''
-  }
-
-  Object.entries(iframe.attr() ?? {}).forEach(([name]) => {
-    if (!allowedIframeAttributes.has(name)) {
-      iframe.removeAttr(name)
-    }
-  })
-
-  const src = iframe.attr('src')
-  if (!src || !/^https?:/iu.test(src)) {
-    return ''
-  }
-
-  iframe.attr('src', src.trim())
-  iframe.attr('width', '100%')
-  if (!iframe.attr('loading')) {
-    iframe.attr('loading', 'lazy')
-  }
-  if (!iframe.attr('title')) {
-    iframe.attr('title', 'SoundCloud embed')
-  }
-
-  const style = iframe.attr('style')
-  if (style && /javascript:/iu.test(style)) {
-    iframe.removeAttr('style')
-  }
-
-  const currentStyle = iframe.attr('style')
-  if (!currentStyle) {
-    iframe.attr('style', appendDarkModeStyles('width:100%;border:0;'))
-  }
-  else {
-    iframe.attr('style', appendDarkModeStyles(currentStyle))
-  }
-
-  return $.html('iframe')
-}
-
-const soundCloudOembedCache = new Map()
-
-async function fetchSoundCloudOembed(rawUrl) {
-  if (soundCloudOembedCache.has(rawUrl)) {
-    return soundCloudOembedCache.get(rawUrl)
-  }
-
-  const endpoint = `https://soundcloud.com/oembed?format=json&url=${encodeURIComponent(rawUrl)}&maxheight=166&show_artwork=true&color=%23212121`
-
-  const request = $fetch(endpoint, {
-    responseType: 'json',
-    retry: 2,
-    retryDelay: 100,
-  })
-    .then((data) => {
-      const html = typeof data?.html === 'string' ? data.html : ''
-      const sanitized = sanitizeIframeHtml(html)
-      return sanitized || null
-    })
-    .catch((error) => {
-      console.error('SoundCloud oEmbed failed', { url: rawUrl, error: error?.message ?? error })
-      return null
-    })
-
-  soundCloudOembedCache.set(rawUrl, request)
-  return request
-}
-
-function isSoundCloudUrl(rawUrl) {
-  try {
-    const url = new URL(rawUrl)
-    return /(?:^|\.)soundcloud\.com$/iu.test(url.hostname)
-  }
-  catch {
-    return false
   }
 }
 
@@ -266,7 +135,9 @@ function extractEmbeddableLinks($, content) {
         return
       }
 
-      if (seen.has(href)) {
+      const normalized = normalizeUrl(href)
+
+      if (seen.has(normalized)) {
         return
       }
 
@@ -275,51 +146,11 @@ function extractEmbeddableLinks($, content) {
         return
       }
 
-      // Only collect known rich providers; ignore generic links here
-      const fam = getEmbedFamilyFromUrl(href)
-      if (!fam) {
-        return
-      }
-
-      seen.add(href)
+      seen.add(normalized)
       links.push({ url: href })
     })
 
   return links
-}
-
-async function hydrateSoundCloudEmbeds(posts, { enableEmbeds }) {
-  if (!enableEmbeds) {
-    return posts
-  }
-
-  const tasks = []
-
-  posts.forEach((post) => {
-    if (!Array.isArray(post?.embeds)) {
-      return
-    }
-
-    post.embeds.forEach((embed) => {
-      if (!embed?.url || !isSoundCloudUrl(embed.url)) {
-        return
-      }
-
-      const task = fetchSoundCloudOembed(embed.url).then((html) => {
-        if (html) {
-          embed.oembedHtml = html
-        }
-      })
-
-      tasks.push(task)
-    })
-  })
-
-  if (tasks.length > 0) {
-    await Promise.allSettled(tasks)
-  }
-
-  return posts
 }
 
 function getAudio($, item, { staticProxy }) {
@@ -474,15 +305,14 @@ function getLinkPreview($, item, { staticProxy, index, embeds }) {
   const description = $(item).find('.link_preview_description')?.text()
 
   const href = link?.attr('href')?.trim()
-  const previewFamily = getEmbedFamilyFromUrl(href)
   const normalizedHref = normalizeUrlText(href)
 
   if (isDirectDownloadUrl(href)) {
     return ''
   }
 
-  if (previewFamily && Array.isArray(embeds) && embeds.length > 0) {
-    const hasMatchingEmbed = embeds.some(embed => getEmbedFamilyFromUrl(embed?.url) === previewFamily)
+  if (normalizedHref && Array.isArray(embeds) && embeds.length > 0) {
+    const hasMatchingEmbed = embeds.some(embed => normalizeUrlText(embed?.url) === normalizedHref)
 
     if (hasMatchingEmbed) {
       return ''
@@ -742,16 +572,14 @@ function getPost($, item, { channel, staticProxy, index = 0, baseUrl = '/', enab
       const base = Array.isArray(embeds) ? embeds.slice() : []
       if (linkPreview) {
         const href = getHrefFromPreviewHtml(linkPreview, cheerio)
-        const previewFamily = getEmbedFamilyFromUrl(href)
-        const hasProvider = base.some((embed) => {
-          const fam = getEmbedFamilyFromUrl(embed?.url)
-          return (embed?.url && href && embed.url === href) || (fam && fam === previewFamily)
-        })
+        const normalizedHref = normalizeUrl(href)
+        const hasProvider = normalizedHref
+          ? base.some(embed => normalizeUrl(embed?.url) === normalizedHref)
+          : false
 
-        if (!hasProvider) {
+        if (href && !hasProvider) {
           base.push({
-            url: href || undefined,
-            oembedHtml: linkPreview,
+            url: href,
           })
         }
       }
@@ -809,7 +637,6 @@ export async function getChannelInfo(Astro, { before = '', after = '', q = '', t
   const $ = cheerio.load(html, {}, false)
   if (id) {
     const post = getPost($, null, { channel, staticProxy, baseUrl, enableEmbeds: embedsEnabled })
-    await hydrateSoundCloudEmbeds([post], { enableEmbeds: embedsEnabled })
     cache.set(cacheKey, post)
     return post
   }
@@ -818,8 +645,6 @@ export async function getChannelInfo(Astro, { before = '', after = '', q = '', t
       return getPost($, item, { channel, staticProxy, index, baseUrl, enableEmbeds: embedsEnabled })
     })?.get()?.reverse().filter(post => ['text'].includes(post.type) && post.id && post.content)
   ) ?? []
-
-  await hydrateSoundCloudEmbeds(posts, { enableEmbeds: embedsEnabled })
 
   const tagIndex = buildTagIndex(posts)
   const availableTags = Object.keys(tagIndex).sort((a, b) => a.localeCompare(b))

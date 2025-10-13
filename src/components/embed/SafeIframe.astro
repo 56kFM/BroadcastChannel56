@@ -1,0 +1,29 @@
+---
+const {
+  src,
+  title = 'Embedded media',
+  allow = 'autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture',
+  sandbox = 'allow-scripts allow-same-origin allow-popups allow-presentation',
+  style,
+  class: className,
+} = Astro.props as {
+  src: string
+  title?: string
+  allow?: string
+  sandbox?: string
+  style?: string
+  class?: string
+}
+
+const mergedStyle = [`width:100%`, `border:0`, style?.trim() ?? ''].filter(Boolean).join(';')
+---
+
+<iframe
+  src={src}
+  title={title}
+  loading="lazy"
+  referrerpolicy="no-referrer"
+  allow={allow}
+  sandbox={sandbox}
+  class={className}
+  style={mergedStyle}></iframe>

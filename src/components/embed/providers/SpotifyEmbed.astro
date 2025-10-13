@@ -1,0 +1,23 @@
+---
+import SafeIframe from '../SafeIframe.astro'
+
+const { url } = Astro.props as { url: string }
+
+let src = ''
+try {
+  const parsed = new URL(url)
+  src = `https://open.spotify.com/embed${parsed.pathname}${parsed.search}`
+  const embedUrl = new URL(src)
+  embedUrl.searchParams.set('theme', '0')
+  src = embedUrl.toString()
+} catch {
+  throw new Error('Invalid Spotify URL')
+}
+---
+
+<SafeIframe
+  src={src}
+  title="Spotify player"
+  allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+  style="height:352px;border-radius:12px;overflow:hidden;color-scheme:dark;background-color:#000;"
+/>

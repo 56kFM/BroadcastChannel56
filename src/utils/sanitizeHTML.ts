@@ -1,4 +1,5 @@
 import sanitizeHtml from 'sanitize-html'
+import { iframeAllowlist } from '../lib/embed/index.ts'
 
 type AttributeMap = NonNullable<typeof sanitizeHtml.defaults.allowedAttributes>
 
@@ -8,15 +9,7 @@ type AllowedAttributes = {
 
 const dedupe = (values: string[] = []) => Array.from(new Set(values))
 
-const allowedIframeHostnames = [
-  'bandcamp.com',
-  'w.soundcloud.com',
-  'open.spotify.com',
-  'embed.music.apple.com',
-  'youtube.com',
-  'youtube-nocookie.com',
-  'player.vimeo.com',
-]
+const allowedIframeHostnames = iframeAllowlist
 
 const allowedIframeAttributes = [
   'src',
