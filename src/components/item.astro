@@ -26,12 +26,8 @@ if (locale) {
 
 const timezone = (getEnv(import.meta.env, Astro, 'TIMEZONE') ?? validatedEnv.timezone) || 'UTC'
 const channel = getEnv(import.meta.env, Astro, 'CHANNEL') ?? validatedEnv.channel
-// Default ON unless explicitly "false" (any case/whitespace)
-const COMMENTS =
-  ((getEnv(import.meta.env, Astro, 'COMMENTS') ?? 'true')
-    .toString()
-    .trim()
-    .toLowerCase()) !== 'false'
+// Default ON unless explicitly "false" (case-insensitive)
+const COMMENTS = (getEnv(import.meta.env, Astro, 'COMMENTS') ?? 'true').toString().trim().toLowerCase() !== 'false'
 const envEmbedSetting = getEnv(import.meta.env, Astro, 'ENABLE_EMBEDS')
 const envEmbedsEnabled = envEmbedSetting === undefined ? true : envEmbedSetting !== 'false'
 
@@ -289,7 +285,9 @@ const timeago = datetime.isBefore(dayjs().subtract(1, 'w')) ? datetime.format('H
           data-comments-limit="50"
           data-colorful="1"
           data-dark="1"
-        ></script>
+        >
+          // Telegram widget loader
+        </script>
       </div>
     )
   }
