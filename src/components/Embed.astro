@@ -1,8 +1,8 @@
 ---
-import { resolveEmbed } from '../lib/embed/resolve'
-import type { EmbedDescriptor } from '../lib/embed/types'
-import OEmbedCard from './embed/OEmbedCard.astro'
-import LinkPreviewCard from './embed/LinkPreviewCard.astro'
+// Emergency hotfix: minimal, working Embed component that restores site rendering.
+// It handles first-class providers (YouTube, Bandcamp, Spotify, Apple Music) and falls back to a plain link.
+// This bypasses the new resolve/oEmbed/OG layers to get the site back up immediately.
+
 import YouTubeEmbed from './embed/providers/YouTubeEmbed.astro'
 import BandcampEmbed from './embed/providers/BandcampEmbed.astro'
 import SpotifyEmbed from './embed/providers/SpotifyEmbed.astro'
@@ -10,59 +10,39 @@ import AppleMusicEmbed from './embed/providers/AppleMusicEmbed.astro'
 
 const { url } = Astro.props as { url: string }
 
-const componentMap: Record<string, any> = {
-  YouTubeEmbed,
-  BandcampEmbed,
-  SpotifyEmbed,
-  AppleMusicEmbed,
-}
-
-let descriptor: EmbedDescriptor | null = null
-let resolveError: Error | null = null
-
+let u: URL | null = null
 try {
-  descriptor = await resolveEmbed(url)
-} catch (error) {
-  resolveError = error instanceof Error ? error : new Error('Failed to resolve embed')
-  if (import.meta.env.DEV) {
-    console.warn('Failed to resolve embed', { url, error: resolveError })
-  }
-  descriptor = null
+  u = new URL(url)
+} catch {
+  u = null
 }
+
+// Simple host checks for known providers
+const isYouTube = u ? /(^|\.)youtube\.com$|(^|\.)youtu\.be$/i.test(u.hostname) : false
+const isBandcamp = u ? /(^|\.)bandcamp\.com$/i.test(u.hostname) : false
+const isSpotify = u ? /(^|\.)spotify\.com$/i.test(u.hostname) : false
+const isApple = u ? /(^|\.)music\.apple\.com$/i.test(u.hostname) : false
 
 const isInternal = /^(?:\/(?!\/)|\.\/|\.\.\/|#)/u.test(url)
 
-let FirstClassComponent: any = null
-if (descriptor?.kind === 'first-class') {
-  FirstClassComponent = componentMap[descriptor.component]
-}
-
-const fallbackLink = (
-  <a
-    href={url}
-    rel={isInternal ? undefined : 'noopener noreferrer nofollow ugc'}
-    target={isInternal ? undefined : '_blank'}
-  >
+const fallbackLink = isInternal ? (
+  <a href={url}>{url}</a>
+) : (
+  <a href={url} target="_blank" rel="noopener noreferrer">
     {url}
   </a>
 )
 ---
 
 {
-  descriptor ? (
-    descriptor.kind === 'first-class' ? (
-      FirstClassComponent ? (
-        <FirstClassComponent {...descriptor.props} />
-      ) : (
-        fallbackLink
-      )
-    ) : descriptor.kind === 'oembed' ? (
-      <OEmbedCard {...descriptor} />
-    ) : descriptor.kind === 'og-card' ? (
-      <LinkPreviewCard url={descriptor.url} meta={descriptor.meta} />
-    ) : (
-      fallbackLink
-    )
+  isYouTube ? (
+    <YouTubeEmbed url={url} />
+  ) : isBandcamp ? (
+    <BandcampEmbed url={url} />
+  ) : isSpotify ? (
+    <SpotifyEmbed url={url} />
+  ) : isApple ? (
+    <AppleMusicEmbed url={url} />
   ) : (
     fallbackLink
   )
