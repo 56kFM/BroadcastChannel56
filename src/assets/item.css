@@ -14,6 +14,10 @@
   width: 100%;
   max-width: min(100%, calc(100% - var(--box-margin)));
   display: block;
+  border: none;
+  border-radius: 0;
+  background-color: var(--cell-background-color);
+  box-shadow: none;
 }
 
 .media-audio figcaption {

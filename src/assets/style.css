@@ -397,7 +397,7 @@ a.site-title:focus-visible {
   box-shadow: none;
 }
 
-audio::-webkit-media-controls-panel {
+.media-audio audio::-webkit-media-controls-panel {
   background-color: rgba(36, 36, 44, 0.55);
   border-radius: 0;
 }
