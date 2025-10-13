@@ -1,14 +1,14 @@
 ---
 import { resolveEmbed } from '../lib/embeds'
-import { sanitizeHTML } from '../utils/sanitizeHTML'
-import { extractFirstImgSrc, stripFirstImg } from '../utils/parsePreview'
 
 const { url, oembedHtml } = Astro.props as { url: string; oembedHtml?: string }
 
-let resolved: ReturnType<typeof resolveEmbed> | null = null
+const fromLoader = oembedHtml ? { html: oembedHtml } : null
+
+let resolved = fromLoader ?? null
 let embedError: Error | null = null
 
-if (!oembedHtml) {
+if (!resolved) {
   try {
     resolved = resolveEmbed(url)
   } catch (error) {
@@ -20,54 +20,16 @@ if (!oembedHtml) {
   }
 }
 
-const imgSrc = oembedHtml ? extractFirstImgSrc(oembedHtml) : null
-const bodyHtml = oembedHtml ? sanitizeHTML(stripFirstImg(oembedHtml)) : ''
-
 const isSoundCloudPlaceholder =
-  !oembedHtml && typeof resolved?.html === 'string' && resolved.html.startsWith('<!-- SOUNDCloud_OEMBED')
+  !fromLoader && typeof resolved?.html === 'string' && resolved.html.startsWith('<!-- SOUNDCloud_OEMBED')
 ---
 
 {
-  oembedHtml ? (
-    <a class="preview-card" href={url || '#'} target="_blank" rel="noopener noreferrer">
-      {imgSrc && <img class="preview-card__img" src={imgSrc} alt="" loading="lazy" />}
-      <div class="preview-card__body" set:html={bodyHtml} />
-    </a>
-  ) : resolved && !isSoundCloudPlaceholder ? (
+  resolved && !isSoundCloudPlaceholder ? (
     <Fragment set:html={resolved.html} />
-  ) : url ? (
+  ) : (
     <a href={url} rel="noopener nofollow ugc">
       {url}
     </a>
-  ) : null
+  )
 }
-
-<style>
-  .preview-card {
-    display: flex;
-    align-items: stretch;
-    text-decoration: none;
-    border: 1px solid currentColor;
-    border-radius: 12px;
-    overflow: hidden;
-  }
-
-  .preview-card__img {
-    width: 88px;
-    aspect-ratio: 1 / 1;
-    object-fit: cover;
-    display: block;
-  }
-
-  .preview-card__body {
-    flex: 1;
-    padding: 0.75rem 1rem;
-    line-height: 1.35;
-  }
-
-  .preview-card__body a {
-    color: inherit;
-    text-decoration: underline;
-    word-break: break-word;
-  }
-</style>
