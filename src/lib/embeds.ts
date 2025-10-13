@@ -81,7 +81,7 @@ export function resolveEmbed(rawUrl: string): ResolvedEmbed | null {
       srcUrl.searchParams.set('portrait', '0')
 
       return {
-        html: `<iframe loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen allowtransparency="true" src="${esc(srcUrl.toString())}" style="${appendDarkModeStyles('width:100%;height:360px;border:0;')}"></iframe>`,
+        html: `<iframe loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen allowtransparency="true" src="${esc(srcUrl.toString())}" style="${appendDarkModeStyles('width:100%;aspect-ratio:16/9;height:auto;border:0;')}"></iframe>`,
       }
     }
 
