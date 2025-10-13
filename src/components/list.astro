@@ -20,7 +20,10 @@ const afterCursor = posts[0]?.id
 const normalizedBasePath = paginationBasePath ? `${paginationBasePath.replace(/^\/+/u, '').replace(/\/+$/u, '')}/` : ''
 const beforeHref = typeof beforeCursor === 'undefined' ? '' : `${BASE_URL}${normalizedBasePath}before/${beforeCursor}`
 const afterHref = typeof afterCursor === 'undefined' ? '' : `${BASE_URL}${normalizedBasePath}after/${afterCursor}`
-const hasOlderPosts = before && typeof beforeCursor !== 'undefined' && Number.parseInt(beforeCursor, 10) > 1
+const hasOlderPosts =
+  before &&
+  typeof beforeCursor !== 'undefined' &&
+  (typeof channel?.hasOlder === 'boolean' ? channel.hasOlder : Number.parseInt(beforeCursor, 10) > 1)
 const hasNewerPosts = after && typeof afterCursor !== 'undefined'
 /**
  * NOTE: Feed page size is controlled by the repo’s custom paginator.
