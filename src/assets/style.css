@@ -343,7 +343,6 @@ a.site-title:focus-visible {
 
 .image-box,
 .video-box,
-.audio-box,
 .attachment-box,
 .text-box,
 .time-box,
@@ -353,7 +352,6 @@ a.site-title:focus-visible {
 
 .image-box,
 .video-box,
-.audio-box,
 .attachment-box,
 .text-box {
   padding-block: clamp(var(--space-sm), 3vw, var(--space-lg));
@@ -388,8 +386,7 @@ a.site-title:focus-visible {
   box-shadow: var(--shadow-md);
 }
 
-.video-box video,
-.audio-box audio {
+.video-box video audio {
   width: 100%;
   border: none;
   border-radius: 0;
