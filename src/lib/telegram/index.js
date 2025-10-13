@@ -826,10 +826,15 @@ export async function getChannelInfo(Astro, { before = '', after = '', q = '', t
   const selectedTag = normalizedTag
   const filteredPosts = selectedTag ? (tagIndex[selectedTag] ?? []) : posts
   // Determine whether there are actually older posts beyond this page.
-  // We probe the Telegram channel with ?before=<lastId> and see if any messages exist.
-  const lastId = (filteredPosts.at(-1)?.id) || (posts.at(-1)?.id)
+  // We probe the Telegram channel with ?before=<lastId> and confirm that the
+  // probe page contains at least one post whose ID is strictly less than lastId.
+  const lastIdRaw =
+    (filteredPosts.at(-1)?.id) ??
+    (posts.at(-1)?.id)
+  const lastId = Number.parseInt(String(lastIdRaw ?? ''), 10)
   let hasOlder = false
-  if (lastId) {
+
+  if (Number.isFinite(lastId)) {
     try {
       const probeHtml = await $fetch(url, {
         headers,
@@ -837,12 +842,26 @@ export async function getChannelInfo(Astro, { before = '', after = '', q = '', t
         retry: 2,
         retryDelay: 100,
       })
+
       const $$ = cheerio.load(probeHtml, {}, false)
-      hasOlder = ($$('.tgme_widget_message_wrap')?.length ?? 0) > 0
+
+      // Extract numeric post IDs from the probe page and check if any are < lastId
+      const probeIds = $$('.tgme_widget_message_wrap')
+        ?.map((_i, el) => {
+          const dataPost = $$(el)?.attr('data-post') || ''
+          // data-post is typically like "<channel>/<id>"
+          const tail = dataPost.split('/').pop() || ''
+          const idNum = Number.parseInt(tail, 10)
+          return Number.isFinite(idNum) ? idNum : null
+        })
+        ?.get()
+        ?.filter((n) => typeof n === 'number')
+
+      hasOlder = Array.isArray(probeIds) && probeIds.some((id) => id < lastId)
     }
     catch {
-      // If the probe fails, fall back to the old heuristic to avoid breaking UX
-      hasOlder = Number.parseInt(String(lastId), 10) > 1
+      // If the probe fails, fall back to a conservative heuristic
+      hasOlder = lastId > 1
     }
   }
 
