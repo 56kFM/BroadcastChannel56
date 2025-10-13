@@ -374,3 +374,36 @@
     transition: none !important;
   }
 }
+/* BEGIN direct: telegram preview fix */
+.tgme_widget_message_link_preview{
+  max-width:100%;
+  box-sizing:border-box;
+  contain:content;
+}
+
+/* Two-column layout only when an image exists */
+.tgme_widget_message_link_preview:has(.link_preview_image){
+  grid-template-columns: var(--link-preview-thumb, 4.5rem) 1fr;
+  gap:0;
+  padding:0;
+  align-items:start;
+}
+
+/* Square thumbnail on the left; stays small regardless of text length */
+.tgme_widget_message_link_preview:has(.link_preview_image) .link_preview_image{
+  display:block;
+  width:100%;
+  height:auto;
+  aspect-ratio:1/1;
+  object-fit:cover;
+}
+
+/* Text on the right, no overflow/clipping */
+.tgme_widget_message_link_preview:has(.link_preview_image) .link_preview_site_name,
+.tgme_widget_message_link_preview:has(.link_preview_image) .link_preview_title,
+.tgme_widget_message_link_preview:has(.link_preview_image) .link_preview_description{
+  grid-column:2;
+  padding-inline: var(--space-md);
+  min-width:0;
+}
+/* END direct: telegram preview fix */
