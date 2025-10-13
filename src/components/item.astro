@@ -26,12 +26,8 @@ if (locale) {
 
 const timezone = (getEnv(import.meta.env, Astro, 'TIMEZONE') ?? validatedEnv.timezone) || 'UTC'
 const channel = getEnv(import.meta.env, Astro, 'CHANNEL') ?? validatedEnv.channel
-// Coerce COMMENTS to boolean; default ON unless explicitly "false"
-const COMMENTS =
-  ((getEnv(import.meta.env, Astro, 'COMMENTS') ?? 'true')
-    .toString()
-    .trim()
-    .toLowerCase()) !== 'false'
+// Default ON unless explicitly set to "false" (any case/whitespace)
+const COMMENTS = (getEnv(import.meta.env, Astro, 'COMMENTS') ?? 'true').toString().trim().toLowerCase() !== 'false'
 const envEmbedSetting = getEnv(import.meta.env, Astro, 'ENABLE_EMBEDS')
 const envEmbedsEnabled = envEmbedSetting === undefined ? true : envEmbedSetting !== 'false'
 
