@@ -3,6 +3,6 @@
   img-src * data: blob:;
   media-src 'self' https://*.telegram.org https://*.telegram-cdn.org https://cdn*.telegram.org data: blob:;
   style-src 'self' 'unsafe-inline';
-  script-src 'self' https://telegram.org https://*.telegram.org;
+  script-src 'self';
   connect-src 'self' https://*.telegram.org https://*.telegram-cdn.org;
 */
