@@ -134,7 +134,7 @@ a.site-title:focus-visible {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  gap: 48px;
+  gap: 18px;
   margin-inline: auto;
   padding: clamp(var(--space-2xl), 10vw, var(--space-3xl)) clamp(var(--space-lg), 6vw, var(--space-2xl))
     clamp(var(--space-4xl), 12vw, var(--space-4xl));
