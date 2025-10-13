@@ -85,7 +85,6 @@ export function resolveEmbed(rawUrl: string): ResolvedEmbed | null {
       }
     }
 
-
     // Spotify
     if (/(^|\.)open\.spotify\.com$/.test(u.hostname)) {
       const srcUrl = new URL(`https://open.spotify.com/embed${u.pathname}${u.search || ''}`)
