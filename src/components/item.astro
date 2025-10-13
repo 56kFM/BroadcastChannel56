@@ -27,11 +27,7 @@ if (locale) {
 const timezone = (getEnv(import.meta.env, Astro, 'TIMEZONE') ?? validatedEnv.timezone) || 'UTC'
 const channel = getEnv(import.meta.env, Astro, 'CHANNEL') ?? validatedEnv.channel
 // Default ON unless explicitly "false" (case-insensitive)
-const COMMENTS =
-  ((getEnv(import.meta.env, Astro, 'COMMENTS') ?? 'true')
-    .toString()
-    .trim()
-    .toLowerCase()) !== 'false'
+const COMMENTS = (getEnv(import.meta.env, Astro, 'COMMENTS') ?? 'true').toString().trim().toLowerCase() !== 'false'
 const envEmbedSetting = getEnv(import.meta.env, Astro, 'ENABLE_EMBEDS')
 const envEmbedsEnabled = envEmbedSetting === undefined ? true : envEmbedSetting !== 'false'
 
@@ -170,6 +166,54 @@ try {
           url: typeof embed.url === 'string' ? embed.url : '',
         }))
     : []
+
+  // If Telegram didn't provide provider embeds, allow a minimal inline->embed promotion
+  // Use only allow-listed providers and only when no provider embed exists to avoid duplicates.
+  const ALLOWED_EMBED_HOSTS = [
+    'youtu.be',
+    'youtube.com',
+    'www.youtube.com',
+    'www.youtube-nocookie.com',
+    'vimeo.com',
+    'www.vimeo.com',
+    'player.vimeo.com',
+    'soundcloud.com',
+    'w.soundcloud.com',
+    'open.spotify.com',
+    'bandcamp.com',
+    'embed.music.apple.com',
+  ] as const
+
+  function extractInlineEmbedUrlsFromText(text: string): string[] {
+    const out = new Set<string>()
+    if (typeof text !== 'string' || text.length === 0) return []
+    const urlRe = /\bhttps?:\/\/[^\s<>"']+/gi
+    for (const m of text.matchAll(urlRe)) {
+      const u = allowListedUrl(m[0])
+      if (!u) continue
+      try {
+        const h = new URL(u).hostname.toLowerCase()
+        if (ALLOWED_EMBED_HOSTS.some((ah) => h === ah || h.endsWith('.' + ah))) {
+          out.add(u)
+        }
+      } catch {}
+    }
+    return Array.from(out)
+  }
+
+  if (embedList.length === 0) {
+    const inlineCandidates = [
+      ...extractInlineEmbedUrlsFromText(fallbackText),
+      ...extractInlineEmbedUrlsFromText(fallbackSafeHtml),
+    ]
+    const existing = new Set(embedList.map((e) => e.url))
+    for (const u of inlineCandidates) {
+      if (!existing.has(u)) {
+        embedList.push({ url: u })
+        if (embedList.length >= 2) break
+      }
+    }
+  }
   const normalizeAudioUrl = (value: string | undefined) => {
     if (typeof value !== 'string' || value.length === 0) {
       return ''
@@ -289,7 +333,7 @@ const timeago = datetime.isBefore(dayjs().subtract(1, 'w')) ? datetime.format('H
           data-comments-limit="50"
           data-colorful="1"
           data-dark="1"
-        ></script>
+        />
       </div>
     )
   }
