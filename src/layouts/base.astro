@@ -58,6 +58,21 @@ const HEADER_INJECT = getEnv(import.meta.env, Astro, 'HEADER_INJECT')
 const FOOTER_INJECT = getEnv(import.meta.env, Astro, 'FOOTER_INJECT')
 
 const hasHeader = Astro.slots.has('header')
+
+const pathname = Astro.url.pathname.replace(/\/$/, '')
+const isPostPage = pathname.startsWith('/posts/')
+const isTagPage = pathname.startsWith('/tags/')
+
+const titleDefault = channel?.title ?? ''
+
+// Posts: "<channel> ++ <content>"
+// Tags:  "<channel>#<tag>"
+// Else:  "<provided> | <channel>" (fallback)
+const titleTemplate = isPostPage
+  ? `${channel?.title ?? ''} ++ %s`
+  : isTagPage
+    ? `${channel?.title ?? ''}%s`
+    : `%s | ${channel?.title ?? ''}`
 ---
 
 <!doctype html>
@@ -72,11 +87,7 @@ const hasHeader = Astro.slots.has('header')
         navigation: auto;
       }
     </style>
-    <SEO
-      titleTemplate={`%s | ${channel?.title}`}
-      titleDefault={[channel?.title, seoParams.description].filter(Boolean).join(' - ')}
-      {...seoParams}
-    />
+    <SEO titleTemplate={titleTemplate} titleDefault={titleDefault} {...seoParams} />
     <Fragment set:html={HEADER_INJECT} />
   </head>
 
