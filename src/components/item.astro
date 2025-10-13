@@ -167,6 +167,26 @@ try {
         }))
     : []
 
+  // Bandcamp de-duplication: keep only the first Bandcamp embed to avoid duplicate players
+  if (embedList.length > 1) {
+    const out: Array<{ url: string }> = []
+    let seenBandcamp = false
+    for (const e of embedList) {
+      try {
+        const h = new URL(e.url).hostname.toLowerCase()
+        const isBC = h === 'bandcamp.com' || h.endsWith('.bandcamp.com')
+        if (isBC) {
+          if (seenBandcamp) continue
+          seenBandcamp = true
+        }
+        out.push(e)
+      } catch {
+        out.push(e)
+      }
+    }
+    embedList = out
+  }
+
   // If Telegram didn't provide provider embeds, allow a minimal inline->embed promotion
   // Use only allow-listed providers and only when no provider embed exists to avoid duplicates.
   const ALLOWED_EMBED_HOSTS = [
