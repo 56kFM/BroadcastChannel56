@@ -48,6 +48,7 @@ export function resolveEmbed(rawUrl: string): ResolvedEmbed | null {
       const srcUrl = new URL(`https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}`)
       srcUrl.searchParams.set('rel', '0')
       srcUrl.searchParams.set('color', 'white')
+      srcUrl.searchParams.set('modestbranding', '1')
 
       return {
         html: `<iframe loading="lazy" allow="accelerometer; clipboard-write; encrypted-media; picture-in-picture" allowfullscreen src="${esc(srcUrl.toString())}" style="${appendDarkModeStyles('width:100%;height:360px;border:0;')}"></iframe>`,
