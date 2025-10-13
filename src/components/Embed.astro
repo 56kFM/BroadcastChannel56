@@ -1,45 +1,35 @@
 ---
-import YouTubeEmbed from './embed/providers/YouTubeEmbed.astro'
-import BandcampEmbed from './embed/providers/BandcampEmbed.astro'
-import SpotifyEmbed from './embed/providers/SpotifyEmbed.astro'
-import AppleMusicEmbed from './embed/providers/AppleMusicEmbed.astro'
-import SoundCloudEmbed from './embed/providers/SoundCloudEmbed.astro'
-import WebsitePreview from './embed/WebsitePreview.astro'
+import { resolveEmbed } from '../lib/embeds'
 
-const { url } = Astro.props as { url: string }
+const { url, oembedHtml } = Astro.props as { url: string; oembedHtml?: string }
 
-const u = (() => {
+const fromLoader = oembedHtml ? { html: oembedHtml } : null
+
+let resolved = fromLoader ?? null
+let embedError: Error | null = null
+
+if (!resolved) {
   try {
-    return new URL(url)
-  } catch {
-    return null
+    resolved = resolveEmbed(url)
+  } catch (error) {
+    embedError = error instanceof Error ? error : new Error('Failed to resolve embed')
+    if (import.meta.env.DEV) {
+      console.warn('Failed to resolve embed', { url, error: embedError })
+    }
+    resolved = null
   }
-})()
-const host = u?.hostname ?? ''
+}
 
-const isYouTube = u ? /(^|\.)youtube\.com$|(^|\.)youtu\.be$/i.test(host) : false
-const isBandcamp = u ? /(^|\.)bandcamp\.com$/i.test(host) : false
-const isSpotify = u ? /(^|\.)spotify\.com$/i.test(host) : false
-const isApple = u ? /(^|\.)music\.apple\.com$/i.test(host) : false
-const isSoundCloud = u ? /(^|\.)soundcloud\.com$|(^|\.)w\.soundcloud\.com$/i.test(host) : false
-
-const isInternal = /^(?:\/(?!\/)|\.\/|\.\.\/|#)/u.test(url)
+const isSoundCloudPlaceholder =
+  !fromLoader && typeof resolved?.html === 'string' && resolved.html.startsWith('<!-- SOUNDCloud_OEMBED')
 ---
 
 {
-  isYouTube ? (
-    <YouTubeEmbed url={url} />
-  ) : isBandcamp ? (
-    <BandcampEmbed url={url} />
-  ) : isSpotify ? (
-    <SpotifyEmbed url={url} />
-  ) : isApple ? (
-    <AppleMusicEmbed url={url} />
-  ) : isSoundCloud ? (
-    <SoundCloudEmbed url={url} />
-  ) : isInternal ? (
-    <a href={url}>{url}</a>
+  resolved && !isSoundCloudPlaceholder ? (
+    <Fragment set:html={resolved.html} />
   ) : (
-    <WebsitePreview url={url} />
+    <a href={url} rel="noopener nofollow ugc">
+      {url}
+    </a>
   )
 }

@@ -1,5 +1,4 @@
 import sanitizeHtml from 'sanitize-html'
-import { iframeAllowlist } from '../lib/embed/index.ts'
 
 type AttributeMap = NonNullable<typeof sanitizeHtml.defaults.allowedAttributes>
 
@@ -9,7 +8,15 @@ type AllowedAttributes = {
 
 const dedupe = (values: string[] = []) => Array.from(new Set(values))
 
-const allowedIframeHostnames = iframeAllowlist
+const allowedIframeHostnames = [
+  'bandcamp.com',
+  'w.soundcloud.com',
+  'open.spotify.com',
+  'embed.music.apple.com',
+  'youtube.com',
+  'youtube-nocookie.com',
+  'player.vimeo.com',
+]
 
 const allowedIframeAttributes = [
   'src',
@@ -143,22 +150,11 @@ export function sanitizeHTML(html: string): string {
     allowedSchemes: ['http', 'https', 'data', 'blob'],
     allowedIframeHostnames,
     nonTextTags: ['audio', 'video', 'iframe'],
-    
     transformTags: {
       a: (tagName, attribs) => {
         if (attribs.href) {
-          const href = String(attribs.href).trim()
-          // Internal links: start with "/", "./", "../", or "#"
-          const isInternal = /^(?:\/(?!\/)|\.\/|\.\.\/|#)/u.test(href)
-          if (!isInternal) {
-            attribs.rel = attribs.rel ?? 'noopener noreferrer'
-            attribs.target = attribs.target ?? '_blank'
-          } else {
-            // Ensure internal links open in the same tab
-            if (attribs.target === '_blank') {
-              delete attribs.target
-            }
-          }
+          attribs.rel = attribs.rel ?? 'noopener noreferrer'
+          attribs.target = attribs.target ?? '_blank'
         }
         return { tagName, attribs }
       },
