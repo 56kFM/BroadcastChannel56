@@ -14,9 +14,6 @@
   width: 100%;
   max-width: min(100%, calc(100% - var(--box-margin)));
   display: block;
-  background-color: var(--cell-background-color);
-  border: 1px solid rgba(148, 163, 184, 0.35);
-  border-radius: var(--radius-md);
 }
 
 .media-audio figcaption {
