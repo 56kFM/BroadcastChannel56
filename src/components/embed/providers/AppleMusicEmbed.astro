@@ -1,0 +1,24 @@
+---
+import SafeIframe from '../SafeIframe.astro'
+
+const { url } = Astro.props as { url: string }
+
+let src = ''
+try {
+  const parsed = new URL(url)
+  src = `https://embed.music.apple.com${parsed.pathname}${parsed.search}`
+  const embedUrl = new URL(src)
+  embedUrl.searchParams.set('theme', 'dark')
+  src = embedUrl.toString()
+} catch {
+  throw new Error('Invalid Apple Music URL')
+}
+---
+
+<SafeIframe
+  src={src}
+  title="Apple Music player"
+  allow="autoplay *; encrypted-media *; clipboard-write"
+  sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-top-navigation-by-user-activation"
+  style="height:450px;border-radius:12px;overflow:hidden;color-scheme:dark;background-color:#000;"
+/>

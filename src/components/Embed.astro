@@ -1,35 +1,69 @@
 ---
-import { resolveEmbed } from '../lib/embeds'
+import { resolveEmbed } from '../lib/embed/resolve'
+import type { EmbedDescriptor } from '../lib/embed/types'
+import OEmbedCard from './embed/OEmbedCard.astro'
+import LinkPreviewCard from './embed/LinkPreviewCard.astro'
+import YouTubeEmbed from './embed/providers/YouTubeEmbed.astro'
+import BandcampEmbed from './embed/providers/BandcampEmbed.astro'
+import SpotifyEmbed from './embed/providers/SpotifyEmbed.astro'
+import AppleMusicEmbed from './embed/providers/AppleMusicEmbed.astro'
 
-const { url, oembedHtml } = Astro.props as { url: string; oembedHtml?: string }
+const { url } = Astro.props as { url: string }
 
-const fromLoader = oembedHtml ? { html: oembedHtml } : null
-
-let resolved = fromLoader ?? null
-let embedError: Error | null = null
-
-if (!resolved) {
-  try {
-    resolved = resolveEmbed(url)
-  } catch (error) {
-    embedError = error instanceof Error ? error : new Error('Failed to resolve embed')
-    if (import.meta.env.DEV) {
-      console.warn('Failed to resolve embed', { url, error: embedError })
-    }
-    resolved = null
-  }
+const componentMap: Record<string, any> = {
+  YouTubeEmbed,
+  BandcampEmbed,
+  SpotifyEmbed,
+  AppleMusicEmbed,
 }
 
-const isSoundCloudPlaceholder =
-  !fromLoader && typeof resolved?.html === 'string' && resolved.html.startsWith('<!-- SOUNDCloud_OEMBED')
+let descriptor: EmbedDescriptor | null = null
+let resolveError: Error | null = null
+
+try {
+  descriptor = await resolveEmbed(url)
+} catch (error) {
+  resolveError = error instanceof Error ? error : new Error('Failed to resolve embed')
+  if (import.meta.env.DEV) {
+    console.warn('Failed to resolve embed', { url, error: resolveError })
+  }
+  descriptor = null
+}
+
+const isInternal = /^(?:\/(?!\/)|\.\/|\.\.\/|#)/u.test(url)
+
+let FirstClassComponent: any = null
+if (descriptor?.kind === 'first-class') {
+  FirstClassComponent = componentMap[descriptor.component]
+}
+
+const fallbackLink = (
+  <a
+    href={url}
+    rel={isInternal ? undefined : 'noopener noreferrer nofollow ugc'}
+    target={isInternal ? undefined : '_blank'}
+  >
+    {url}
+  </a>
+)
 ---
 
 {
-  resolved && !isSoundCloudPlaceholder ? (
-    <Fragment set:html={resolved.html} />
+  descriptor ? (
+    descriptor.kind === 'first-class' ? (
+      FirstClassComponent ? (
+        <FirstClassComponent {...descriptor.props} />
+      ) : (
+        fallbackLink
+      )
+    ) : descriptor.kind === 'oembed' ? (
+      <OEmbedCard {...descriptor} />
+    ) : descriptor.kind === 'og-card' ? (
+      <LinkPreviewCard url={descriptor.url} meta={descriptor.meta} />
+    ) : (
+      fallbackLink
+    )
   ) : (
-    <a href={url} rel="noopener nofollow ugc">
-      {url}
-    </a>
+    fallbackLink
   )
 }
