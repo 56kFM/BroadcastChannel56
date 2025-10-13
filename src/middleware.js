@@ -64,6 +64,10 @@ export async function onRequest(context, next) {
     }
   }
 
+  // CSP NOTE:
+  // This runtime CSP is the single source of truth. Do not add or edit public/_headers to change CSP.
+  // Allowed external providers include Telegram widget (script + frames), YouTube nocookie, Vimeo, SoundCloud,
+  // Bandcamp, Spotify, Apple Music. If you add a new provider, update the lists below explicitly—no placeholders.
   const cspDirectives = [
     'default-src \'self\'',
     'script-src \'self\' \'unsafe-inline\' https://telegram.org https://*.telegram.org',
