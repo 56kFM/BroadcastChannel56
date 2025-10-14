@@ -363,7 +363,7 @@
 }
 /* BEGIN direct: telegram preview fix v5 (grid-areas, image spans all rows) */
 :root {
-  --link-preview-thumb: 6.5rem; /* default before widening; overridden below */
+  --link-preview-thumb: 6.5rem;
 }
 
 .tgme_widget_message_link_preview {
@@ -390,7 +390,7 @@
   place-self: stretch stretch !important;
   width: 100% !important;
   height: 100% !important;
-  object-fit: cover !important;
+  object-fit: fill !important; /* warp to fill both ways */
   margin: 0 !important;
 }
 
