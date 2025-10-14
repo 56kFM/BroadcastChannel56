@@ -50,7 +50,10 @@ const allowedTags = dedupe([
 
 const allowedAttributes: AttributeMap = {
   ...sanitizeHtml.defaults.allowedAttributes,
-  a: dedupe([
+  
+    allowRelative: true,
+    allowProtocolRelative: true,
+    a: dedupe([
     ...(sanitizeHtml.defaults.allowedAttributes?.a ?? []),
     'href',
     'name',
@@ -95,18 +98,8 @@ export const sanitizeHTML = (dirty: string): string => {
   return sanitizeHtml(dirty, {
     allowedTags,
     allowedAttributes,
-    allowedClasses: {
-      '*': ['*'],
-    },
-    allowedSchemes: ['http', 'https', 'data'],
-    allowedSchemesByTag: {
-      img: ['http', 'https', 'data'],
-      source: ['http', 'https'],
-      audio: ['http', 'https'],
-      video: ['http', 'https'],
-      iframe: ['http', 'https'],
-    },
-    transformTags: {
+allowedSchemes: ['http', 'https', 'data'],
+transformTags: {
       a: (tagName, attribs) => {
         const href = attribs?.href
         const isHttp = typeof href === 'string' && /^https?:\/\//i.test(href)
