@@ -374,10 +374,12 @@
     transition: none !important;
   }
 }
-/* BEGIN direct: telegram preview fix v4 (strict square-left) */
+/* BEGIN direct: telegram preview fix v5 (grid-areas, image spans all rows) */
+/* Image spans the full first column; three text rows on the right.
+   This removes the "empty cells" by explicitly defining grid areas. */
+
 :root {
-  /* Wider thumb for a nicer square next to text (change to taste) */
-  --link-preview-thumb: 6.25rem;
+  --link-preview-thumb: 6.5rem; /* adjust to taste */
 }
 
 .tgme_widget_message_link_preview {
@@ -388,32 +390,41 @@
 
 .tgme_widget_message_link_preview:has(.link_preview_image) {
   display: grid !important;
-  grid-template-columns: var(--link-preview-thumb, 6.25rem) minmax(0, 1fr) !important;
+  grid-template-columns: var(--link-preview-thumb, 6.5rem) minmax(0, 1fr) !important;
+  grid-template-rows: auto auto auto !important;
+  grid-template-areas:
+    "img site"
+    "img title"
+    "img desc" !important;
   gap: 0 !important;
   padding: 0 !important;
   align-items: start !important;
-  overflow: hidden !important;
 }
 
-/* Square thumbnail in the first column; strictly square, top-left */
 .tgme_widget_message_link_preview:has(.link_preview_image) .link_preview_image {
-  grid-column: 1 !important;
-  grid-row: 1 !important;
-  place-self: start stretch !important;
-  display: block !important;
+  grid-area: img !important;
+  place-self: stretch stretch !important;
   width: 100% !important;
-  height: auto !important;       /* computed from aspect ratio */
-  aspect-ratio: 1 / 1 !important;/* enforces perfect square based on width */
-  object-fit: cover !important;   /* fill the square (crop if necessary) */
+  height: 100% !important;   /* fill the whole left area vertically */
+  object-fit: cover !important; /* ensure it fills (crop if needed) */
   margin: 0 !important;
 }
 
-/* Text goes in column 2 and wraps safely */
-.tgme_widget_message_link_preview:has(.link_preview_image) .link_preview_site_name,
-.tgme_widget_message_link_preview:has(.link_preview_image) .link_preview_title,
-.tgme_widget_message_link_preview:has(.link_preview_image) .link_preview_description {
-  grid-column: 2 !important;
+.tgme_widget_message_link_preview:has(.link_preview_image) .link_preview_site_name {
+  grid-area: site !important;
   padding-inline: var(--space-md) !important;
   min-width: 0 !important;
 }
-/* END direct: telegram preview fix v4 */
+
+.tgme_widget_message_link_preview:has(.link_preview_image) .link_preview_title {
+  grid-area: title !important;
+  padding-inline: var(--space-md) !important;
+  min-width: 0 !important;
+}
+
+.tgme_widget_message_link_preview:has(.link_preview_image) .link_preview_description {
+  grid-area: desc !important;
+  padding-inline: var(--space-md) !important;
+  min-width: 0 !important;
+}
+/* END direct: telegram preview fix v5 */
