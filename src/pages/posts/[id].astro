@@ -37,7 +37,7 @@ const staticProxy = getEnv(import.meta.env, Astro, 'STATIC_PROXY') ?? '/static/'
             href={BASE_URL}
             class="site-title"
             title={channel?.title}
-            onclick={`event.preventDefault(); if (history.length > 1) { history.back(); } else { window.location.assign('${BASE_URL}'); }`}
+            onclick={`event.preventDefault(); if (history.length > 1) { history.back(); } else { window.location.assign(${JSON.stringify(BASE_URL)}); }`}
           >
             {channel.title}
           </a>
