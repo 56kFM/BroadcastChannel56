@@ -1,89 +1,208 @@
 import sanitizeHtml from 'sanitize-html'
 
+type AttributeMap = NonNullable<typeof sanitizeHtml.defaults.allowedAttributes>
+
+type AllowedAttributes = {
+  [key: string]: string[]
+}
+
 const dedupe = (values: string[] = []) => Array.from(new Set(values))
 
-// ===== Provider iframe allowlist (MUST match invariants) =====
+const ensureRelTokens = (value: string | undefined, tokens: string[]): string => {
+  const currentTokens = typeof value === 'string' ? value.split(/\s+/u).filter(Boolean) : []
+  const merged = new Set([...currentTokens, ...tokens])
+  return Array.from(merged).join(' ')
+}
+
+// Hosts we explicitly allow for iframes (YouTube, Vimeo, Bandcamp, Spotify, Apple, SoundCloud, etc.)
 const allowedIframeHostnames = [
   'www.youtube.com',
   'youtube.com',
-  'www.youtube-nocookie.com',
-  'youtube-nocookie.com',
   'youtu.be',
   'player.vimeo.com',
-  'w.soundcloud.com',
-  'open.spotify.com',
-  'embed.music.apple.com',
+  'vimeo.com',
   'bandcamp.com',
+  'open.spotify.com',
+  'embed.spotify.com',
+  'w.soundcloud.com',
+  'soundcloud.com',
+  'music.apple.com',
+  'embed.tidal.com',
+  'player.tidal.com',
+  'www.mixcloud.com',
+  'player.mixcloud.com',
 ]
 
-const isAllowedIframeSrc = (value?: string): boolean => {
-  if (!value) return false
+const isAllowedIframeHostname = (value: string): boolean => {
   try {
-    const url = new URL(value, 'http://example.com')
-    const host = url.hostname.toLowerCase()
-    return allowedIframeHostnames.includes(host)
+    const url = new URL(value, 'http://example.com') // base for relative URLs
+    const hostname = url.hostname.toLowerCase()
+    return allowedIframeHostnames.some((allowed) => {
+      const a = allowed.toLowerCase()
+      return hostname === a || hostname.endsWith('.' + a.replace(/^\*\./, ''))
+    })
+  } catch {
+    // allow site-internal proxies such as /api/static or /static/...
+    return /^\/(api\/static|static)\b/i.test(value)
+  }
+}
+
+const isAllowedIframeSrc = (src?: string): boolean => {
+  if (!src) return false
+  // Allow same-origin proxies too
+  if (/^\/(api\/static|static)\b/i.test(src)) return true
+  try {
+    // absolute URLs
+    return isAllowedIframeHostname(src)
   } catch {
     return false
   }
 }
 
-// Build allowedTags from defaults + the media tags we need.
-const allowedTags = dedupe([
-  ...sanitizeHtml.defaults.allowedTags,
-  'iframe',
-  'audio',
-  'source',
-  'video',
-])
+export function sanitizeHTML(html: string): string {
+  const allowedTags = dedupe([
+    ...sanitizeHtml.defaults.allowedTags,
+    'img',
+    'video',
+    'audio',
+    'source',
+    'iframe',
+    'figure',
+    'figcaption',,
+  'picture'
+  ])
 
-// Build allowedAttributes explicitly for stability.
-const allowedAttributes: Record<string, string[]> = {
-  ...sanitizeHtml.defaults.allowedAttributes,
+  // Merge our attribute allowances on top of sanitize-html defaults
+  const ourAllowedAttributes: AllowedAttributes = {
+    a: dedupe([
+      ...(sanitizeHtml.defaults.allowedAttributes.a as string[] | undefined ?? []),
+      'href',
+      'name',
+      'target',
+      'rel',
+      'title',
+      'class',
+      'id',
+      'data-*',
+    ]),
+    img: [
+      'src',
+      'alt',
+      'title',
+      'width',
+      'height',
+      'loading',
+      'decoding',
+      'class',
+      'id',
+      'srcset',
+      'sizes',
+      'referrerpolicy',
+    ],
+    video: [
+      'src',
+      'poster',
+      'width',
+      'height',
+      'controls',
+      'muted',
+      'loop',
+      'autoplay',
+      'playsinline',
+      'preload',
+      'disablepictureinpicture',
+      'class',
+      'id',
+    ],
+    audio: [
+      'src',
+      'controls',
+      'loop',
+      'autoplay',
+      'preload',
+      'muted',
+      'class',
+      'id',
+    ],
+    source: [
+      'src',
+      'type',
+      'srcset',
+      'sizes',
+      'media',
+    ],
+    iframe: [
+      'src',
+      'srcdoc',
+      'allow',
+      'allowfullscreen',
+      'referrerpolicy',
+      'sandbox',
+      'width',
+      'height',
+      'title',
+      'data-preserve-embed',
+      'class',
+      'id',
+    ],
+    div: ['class', 'id', 'data-*'],
+    span: ['class', 'id', 'data-*'],
+    figure: ['class', 'id'],
+    figcaption: ['class', 'id'],
+    p: ['class', 'id'],
+    pre: ['class', 'id'],
+    code: ['class', 'id'],
+    blockquote: ['class', 'id'],
+    ul: ['class', 'id'],
+    ol: ['class', 'id'],
+    li: ['class', 'id'],
+    table: ['class', 'id'],
+    thead: ['class', 'id'],
+    tbody: ['class', 'id'],
+    tr: ['class', 'id'],
+    th: ['class', 'id'],
+    td: ['class', 'id'],
+  } as AttributeMap
 
-  a: dedupe([
-    'href', 'name', 'target', 'rel', 'title', 'aria-label', 'class', 'id',
-    ...(sanitizeHtml.defaults.allowedAttributes?.a ?? []),
-  ]),
-
-  img: dedupe([
-    'src', 'alt', 'width', 'height', 'loading', 'decoding', 'class', 'srcset', 'sizes',
-    ...(sanitizeHtml.defaults.allowedAttributes?.img ?? []),
-  ]),
-
-  iframe: [
-    'src', 'srcdoc', 'allow', 'allowfullscreen', 'referrerpolicy', 'sandbox',
-    'width', 'height', 'title', 'data-preserve-embed', 'class', 'id', 'loading', 'frameborder',
-  ],
-
-  audio: ['src', 'controls', 'preload'],
-  video: ['src', 'controls', 'preload', 'poster', 'width', 'height'],
-  source: ['src', 'type'],
-}
-
-export const sanitizeHTML = (dirty: string): string => {
-  return sanitizeHtml(dirty, {
+  return sanitizeHtml(html, {
     allowedTags,
-    allowedAttributes,
-
-    // Allow relative URLs like "/static/https://cdn4.telegram-cdn.org/..."
-    allowRelative: true,
-    allowProtocolRelative: true,
-
-    // Keep simple global scheme allowlist; do NOT use per-tag schemes to avoid stripping relative src.
-    allowedSchemes: ['http', 'https', 'data'],
-
+    allowedAttributes: ourAllowedAttributes as AttributeMap,
+    nonTextTags: ['audio', 'video', 'iframe'],
     transformTags: {
       a: (tagName, attribs) => {
-        const href = attribs?.href
-        const isHttp = typeof href === 'string' && /^https?:\/\//i.test(href)
-        if (isHttp) {
-          // External link policy (unified)
-          attribs.target = attribs.target || '_blank'
-          ;(attribs as any).rel = dedupe([...(attribs.rel?.split(/\s+/u) ?? []), 'noopener', 'noreferrer', 'nofollow', 'ugc']).join(' ')
+        if (attribs?.href) {
+          const href = String(attribs.href).trim()
+          const klass = String((attribs['class'] ?? (attribs as any).className ?? '')).toLowerCase()
+
+          // internal = starts with / (not //), ./, ../, or #hash
+          const isInternal = /^(?:\/(?!\/)|\.\/|\.\.\/|#)/u.test(href)
+
+          // Telegram image preview anchors use these classes
+          const isImagePreview =
+            /\b(image-preview-link|image-preview-wrap)\b/.test(klass)
+
+          if (isInternal && !isImagePreview) {
+            // internal links should not open new tabs
+            if (attribs.target === '_blank') {
+              delete (attribs as any).target
+            }
+          } else {
+            // external or image preview: enforce new tab + safe rel
+            if (!attribs.target) (attribs as any).target = '_blank'
+            ;(attribs as any).rel = ensureRelTokens(attribs.rel as any, ['noopener', 'noreferrer'])
+          }
         }
         return { tagName, attribs }
       },
-
+      // Ensure iframe src is allowed; otherwise it will be dropped by exclusiveFilter
+      iframe: (tagName, attribs) => {
+        const src = String(attribs?.src ?? '').trim()
+        if (!isAllowedIframeSrc(src)) {
+          // drop the src so exclusiveFilter removes it
+          delete (attribs as any).src
+        }
+        return { tagName, attribs }
+      },
       img: (tagName, attribs) => {
         if (attribs) {
           if (!attribs.loading) (attribs as any).loading = 'lazy'
@@ -91,17 +210,7 @@ export const sanitizeHTML = (dirty: string): string => {
         }
         return { tagName, attribs }
       },
-
-      iframe: (tagName, attribs) => {
-        const src = attribs?.src
-        if (!isAllowedIframeSrc(src)) {
-          return { tagName, attribs }
-        }
-        if (!attribs.loading) (attribs as any).loading = 'lazy'
-        return { tagName, attribs }
-      },
     },
-
     exclusiveFilter: (frame) => {
       if (frame.tag === 'iframe') {
         return !isAllowedIframeSrc(frame.attribs?.src)
@@ -110,5 +219,3 @@ export const sanitizeHTML = (dirty: string): string => {
     },
   })
 }
-
-export default sanitizeHTML
