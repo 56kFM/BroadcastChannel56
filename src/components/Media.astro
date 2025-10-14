@@ -12,7 +12,7 @@ const { kind, url, mime, caption } = Astro.props as {
     <figure class="media-audio">
       <audio controls preload="metadata">
         <source src={url} type={mime ?? 'audio/mpeg'} />
-        <a href={url} rel="noopener">
+        <a href={url} rel="noopener noreferrer">
           Download audio
         </a>
       </audio>

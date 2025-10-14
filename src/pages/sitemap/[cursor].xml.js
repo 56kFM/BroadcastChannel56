@@ -1,9 +1,16 @@
+import { normalizeCursorParam } from '../../lib/cursor'
 import { getChannelInfo } from '../../lib/telegram'
 
 export async function GET(Astro) {
+  const cursor = normalizeCursorParam(Astro.params.cursor)
+
+  if (!cursor) {
+    return new Response('', { status: 404 })
+  }
+
   const { SITE_URL } = Astro.locals
   const channel = await getChannelInfo(Astro, {
-    before: Astro.params.cursor,
+    before: cursor,
   })
   const posts = channel.posts || []
   const siteUrl = new URL(SITE_URL)

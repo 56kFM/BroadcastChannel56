@@ -1,9 +1,16 @@
 ---
 import List from '../../components/list.astro'
+import { normalizeCursorParam } from '../../lib/cursor'
 import { getChannelInfo } from '../../lib/telegram'
 
+const cursor = normalizeCursorParam(Astro.params.cursor)
+
+if (!cursor) {
+  return Astro.redirect('/')
+}
+
 const channel = await getChannelInfo(Astro, {
-  before: Astro.params.cursor,
+  before: cursor,
 })
 
 // If Telegram returns no posts for this cursor, avoid an empty page

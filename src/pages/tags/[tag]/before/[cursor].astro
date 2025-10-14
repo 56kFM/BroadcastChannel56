@@ -1,14 +1,19 @@
 ---
 import List from '../../../../components/list.astro'
+import { normalizeCursorParam } from '../../../../lib/cursor'
 import { getChannelInfo } from '../../../../lib/telegram'
 import { normalizeTag } from '../../../../lib/tags'
 
 const rawTagParam = typeof Astro.params.tag === 'string' ? Astro.params.tag : ''
 const normalizedTag = normalizeTag(rawTagParam)
-const cursor = Astro.params.cursor
+const cursor = normalizeCursorParam(Astro.params.cursor)
 
 if (!normalizedTag) {
   return Astro.redirect('/tags/')
+}
+
+if (!cursor) {
+  return Astro.redirect(`/tags/${encodeURIComponent(normalizedTag)}/`)
 }
 
 // Fetch the "older" slice for this tag
