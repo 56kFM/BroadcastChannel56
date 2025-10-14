@@ -18,22 +18,15 @@ const ensureRelTokens = (value: string | undefined, tokens: string[]): string =>
 const allowedIframeHostnames = [
   'www.youtube.com',
   'youtube.com',
+  'www.youtube-nocookie.com',
+  'youtube-nocookie.com',
   'youtu.be',
   'player.vimeo.com',
-  'vimeo.com',
-  'bandcamp.com',
-  'open.spotify.com',
-  'embed.spotify.com',
   'w.soundcloud.com',
-  'soundcloud.com',
-  'music.apple.com',
-  'embed.tidal.com',
-  'player.tidal.com',
-  'www.mixcloud.com',
-  'player.mixcloud.com',
-]
-
-const isAllowedIframeHostname = (value: string): boolean => {
+  'open.spotify.com',
+  'embed.music.apple.com',
+  'bandcamp.com',
+]const isAllowedIframeHostname = (value: string): boolean => {
   try {
     const url = new URL(value, 'http://example.com') // base for relative URLs
     const hostname = url.hostname.toLowerCase()
@@ -131,7 +124,7 @@ export function sanitizeHTML(html: string): string {
       'media',
     ],
     iframe: [
-      'src',
+            'src',
       'srcdoc',
       'allow',
       'allowfullscreen',
@@ -143,6 +136,9 @@ export function sanitizeHTML(html: string): string {
       'data-preserve-embed',
       'class',
       'id',
+      'loading',
+      'frameborder',
+
     ],
     div: ['class', 'id', 'data-*'],
     span: ['class', 'id', 'data-*'],
@@ -188,7 +184,7 @@ export function sanitizeHTML(html: string): string {
           } else {
             // external or image preview: enforce new tab + safe rel
             if (!attribs.target) (attribs as any).target = '_blank'
-            ;(attribs as any).rel = ensureRelTokens(attribs.rel as any, ['noopener', 'noreferrer'])
+            ;(attribs as any).rel = ensureRelTokens(attribs.rel as any, ['noopener', 'noreferrer', 'nofollow', 'ugc'])
           }
         }
         return { tagName, attribs }
