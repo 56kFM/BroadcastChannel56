@@ -4,7 +4,7 @@ function findEnvValue(env = {}, name) {
   }
 
   if (name in env) {
-    return env[name]
+    return normalizeValue(env[name])
   }
 
   const normalizedName = name.replace(/_/g, '').toUpperCase()
@@ -17,7 +17,7 @@ function findEnvValue(env = {}, name) {
     const normalizedKey = key.replace(/_/g, '').toUpperCase()
 
     if (normalizedKey === normalizedName) {
-      return value
+      return normalizeValue(value)
     }
   }
 
@@ -26,4 +26,18 @@ function findEnvValue(env = {}, name) {
 
 export function getEnv(env, Astro, name) {
   return findEnvValue(env, name) ?? findEnvValue(Astro.locals?.runtime?.env, name)
+}
+
+function normalizeValue(value) {
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+
+    if (trimmed.length === 0) {
+      return undefined
+    }
+
+    return trimmed
+  }
+
+  return value
 }
