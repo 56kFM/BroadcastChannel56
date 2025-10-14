@@ -374,57 +374,15 @@
     transition: none !important;
   }
 }
-/* BEGIN direct: telegram preview fix v5 (grid-areas, image spans all rows) */
-/* Image spans the full first column; three text rows on the right.
-   This removes the "empty cells" by explicitly defining grid areas. */
-
+/* BEGIN direct: telegram preview tweak v6 (wider left column) */
+/* Slightly widen the left image column for better balance.
+   We do this by setting the CSS variable used by the grid: */
 :root {
-  --link-preview-thumb: 6.5rem; /* adjust to taste */
+  --link-preview-thumb: 8rem; /* previously ~6.5rem */
 }
 
-.tgme_widget_message_link_preview {
-  max-width: 100% !important;
-  box-sizing: border-box !important;
-  contain: content !important;
+/* Optional: keep it reasonable on very narrow screens */
+@media (max-width: 480px) {
+  :root { --link-preview-thumb: 6.25rem; }
 }
-
-.tgme_widget_message_link_preview:has(.link_preview_image) {
-  display: grid !important;
-  grid-template-columns: var(--link-preview-thumb, 6.5rem) minmax(0, 1fr) !important;
-  grid-template-rows: auto auto auto !important;
-  grid-template-areas:
-    "img site"
-    "img title"
-    "img desc" !important;
-  gap: 0 !important;
-  padding: 0 !important;
-  align-items: start !important;
-}
-
-.tgme_widget_message_link_preview:has(.link_preview_image) .link_preview_image {
-  grid-area: img !important;
-  place-self: stretch stretch !important;
-  width: 100% !important;
-  height: 100% !important;   /* fill the whole left area vertically */
-  object-fit: cover !important; /* ensure it fills (crop if needed) */
-  margin: 0 !important;
-}
-
-.tgme_widget_message_link_preview:has(.link_preview_image) .link_preview_site_name {
-  grid-area: site !important;
-  padding-inline: var(--space-md) !important;
-  min-width: 0 !important;
-}
-
-.tgme_widget_message_link_preview:has(.link_preview_image) .link_preview_title {
-  grid-area: title !important;
-  padding-inline: var(--space-md) !important;
-  min-width: 0 !important;
-}
-
-.tgme_widget_message_link_preview:has(.link_preview_image) .link_preview_description {
-  grid-area: desc !important;
-  padding-inline: var(--space-md) !important;
-  min-width: 0 !important;
-}
-/* END direct: telegram preview fix v5 */
+/* END direct: telegram preview tweak v6 */
