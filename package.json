@@ -12,7 +12,7 @@
     "astro": "astro",
     "lint": "eslint \"src/**/*.{ts,tsx,js,jsx,astro}\"",
     "lint:fix": "eslint \"src/**/*.{ts,tsx,js,jsx,astro}\" --fix",
-    "postinstall": "test -d .git && simple-git-hooks || true"
+    "postinstall": "node scripts/postinstall.cjs"
   },
   "dependencies": {
     "@astrojs/rss": "^4.0.12",
