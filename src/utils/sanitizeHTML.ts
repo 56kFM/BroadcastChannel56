@@ -1,18 +1,6 @@
 import sanitizeHtml from 'sanitize-html'
 
-type AttributeMap = NonNullable<typeof sanitizeHtml.defaults.allowedAttributes>
-
-type AllowedAttributes = {
-  [key: string]: string[]
-}
-
 const dedupe = (values: string[] = []) => Array.from(new Set(values))
-
-const ensureRelTokens = (value: string | undefined, tokens: string[]): string => {
-  const currentTokens = typeof value === 'string' ? value.split(/\s+/u).filter(Boolean) : []
-  const merged = new Set([...currentTokens, ...tokens])
-  return Array.from(merged).join(' ')
-}
 
 // ===== Provider iframe allowlist (MUST match invariants) =====
 const allowedIframeHostnames = [
@@ -31,7 +19,7 @@ const allowedIframeHostnames = [
 const isAllowedIframeSrc = (value?: string): boolean => {
   if (!value) return false
   try {
-    const url = new URL(value, 'http://example.com') // base allows relative URLs
+    const url = new URL(value, 'http://example.com')
     const host = url.hostname.toLowerCase()
     return allowedIframeHostnames.includes(host)
   } catch {
@@ -39,7 +27,7 @@ const isAllowedIframeSrc = (value?: string): boolean => {
   }
 }
 
-// ===== Base options derived from sanitize-html defaults =====
+// Build allowedTags from defaults + the media tags we need.
 const allowedTags = dedupe([
   ...sanitizeHtml.defaults.allowedTags,
   'iframe',
@@ -48,47 +36,25 @@ const allowedTags = dedupe([
   'video',
 ])
 
-const allowedAttributes: AttributeMap = {
+// Build allowedAttributes explicitly for stability.
+const allowedAttributes: Record<string, string[]> = {
   ...sanitizeHtml.defaults.allowedAttributes,
-  
-    allowRelative: true,
-    allowProtocolRelative: true,
-    a: dedupe([
+
+  a: dedupe([
+    'href', 'name', 'target', 'rel', 'title', 'aria-label', 'class', 'id',
     ...(sanitizeHtml.defaults.allowedAttributes?.a ?? []),
-    'href',
-    'name',
-    'target',
-    'rel',
-    'title',
-    'aria-label',
-    'class',
-    'id',
   ]),
+
   img: dedupe([
-    ...(sanitizeHtml.defaults.allowedAttributes?.img ?? [, "class", "srcset", "sizes"]),
-    'src',
-    'alt',
-    'width',
-    'height',
-    'loading',
-    'decoding',
+    'src', 'alt', 'width', 'height', 'loading', 'decoding', 'class', 'srcset', 'sizes',
+    ...(sanitizeHtml.defaults.allowedAttributes?.img ?? []),
   ]),
+
   iframe: [
-    'src',
-    'srcdoc',
-    'allow',
-    'allowfullscreen',
-    'referrerpolicy',
-    'sandbox',
-    'width',
-    'height',
-    'title',
-    'data-preserve-embed',
-    'class',
-    'id',
-    'loading',
-    'frameborder',
+    'src', 'srcdoc', 'allow', 'allowfullscreen', 'referrerpolicy', 'sandbox',
+    'width', 'height', 'title', 'data-preserve-embed', 'class', 'id', 'loading', 'frameborder',
   ],
+
   audio: ['src', 'controls', 'preload'],
   video: ['src', 'controls', 'preload', 'poster', 'width', 'height'],
   source: ['src', 'type'],
@@ -98,21 +64,26 @@ export const sanitizeHTML = (dirty: string): string => {
   return sanitizeHtml(dirty, {
     allowedTags,
     allowedAttributes,
-allowedSchemes: ['http', 'https', 'data'],
-transformTags: {
+
+    // Allow relative URLs like "/static/https://cdn4.telegram-cdn.org/..."
+    allowRelative: true,
+    allowProtocolRelative: true,
+
+    // Keep simple global scheme allowlist; do NOT use per-tag schemes to avoid stripping relative src.
+    allowedSchemes: ['http', 'https', 'data'],
+
+    transformTags: {
       a: (tagName, attribs) => {
         const href = attribs?.href
         const isHttp = typeof href === 'string' && /^https?:\/\//i.test(href)
         if (isHttp) {
           // External link policy (unified)
           attribs.target = attribs.target || '_blank'
-          ;(attribs as any).rel = ensureRelTokens(
-            attribs.rel as any,
-            ['noopener', 'noreferrer', 'nofollow', 'ugc']
-          )
+          ;(attribs as any).rel = dedupe([...(attribs.rel?.split(/\s+/u) ?? []), 'noopener', 'noreferrer', 'nofollow', 'ugc']).join(' ')
         }
         return { tagName, attribs }
       },
+
       img: (tagName, attribs) => {
         if (attribs) {
           if (!attribs.loading) (attribs as any).loading = 'lazy'
@@ -120,18 +91,17 @@ transformTags: {
         }
         return { tagName, attribs }
       },
+
       iframe: (tagName, attribs) => {
         const src = attribs?.src
         if (!isAllowedIframeSrc(src)) {
-          // Will be dropped by exclusiveFilter; keep attributes intact if allowed.
           return { tagName, attribs }
         }
-        // Preserve and add safe defaults
         if (!attribs.loading) (attribs as any).loading = 'lazy'
-        // Honor provided allow/allowfullscreen/referrerpolicy as-is
         return { tagName, attribs }
       },
     },
+
     exclusiveFilter: (frame) => {
       if (frame.tag === 'iframe') {
         return !isAllowedIframeSrc(frame.attribs?.src)
