@@ -62,7 +62,7 @@ const allowedAttributes: AttributeMap = {
     'id',
   ]),
   img: dedupe([
-    ...(sanitizeHtml.defaults.allowedAttributes?.img ?? []),
+    ...(sanitizeHtml.defaults.allowedAttributes?.img ?? [, "class", "srcset", "sizes"]),
     'src',
     'alt',
     'width',
