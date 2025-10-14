@@ -8,6 +8,12 @@ type AllowedAttributes = {
 
 const dedupe = (values: string[] = []) => Array.from(new Set(values))
 
+const ensureRelTokens = (value: string | undefined, tokens: string[]): string => {
+  const currentTokens = typeof value === 'string' ? value.split(/\s+/u).filter(Boolean) : []
+  const merged = new Set([...currentTokens, ...tokens])
+  return Array.from(merged).join(' ')
+}
+
 const allowedIframeHostnames = [
   'bandcamp.com',
   'w.soundcloud.com',
@@ -147,7 +153,10 @@ export function sanitizeHTML(html: string): string {
   return sanitizeHtml(html, {
     allowedTags,
     allowedAttributes,
-    allowedSchemes: ['http', 'https', 'data', 'blob'],
+    allowedSchemes: ['http', 'https', 'mailto'],
+    allowedSchemesByTag: {
+      img: ['data'],
+    },
     allowedIframeHostnames,
     nonTextTags: ['audio', 'video', 'iframe'],
     transformTags: {
@@ -164,7 +173,7 @@ export function sanitizeHTML(html: string): string {
           }
           else {
             if (!attribs.target) attribs.target = '_blank'
-            if (!attribs.rel) attribs.rel = 'noopener noreferrer'
+            attribs.rel = ensureRelTokens(attribs.rel, ['noopener', 'noreferrer'])
           }
         }
         return { tagName, attribs }
