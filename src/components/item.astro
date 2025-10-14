@@ -305,7 +305,7 @@ const timeago = datetime.isBefore(dayjs().subtract(1, 'w')) ? datetime.format('H
             fallbackText.length > 0 && <p>{fallbackText}</p>
           )}
           {fallbackLinks.map((link) => (
-            <p class="embed-fallback" key={`fallback-link-${link.url}`}>
+            <p class="embed-fallback">
               <a href={link.url} rel="noopener noreferrer nofollow ugc">
                 {link.url}
               </a>
@@ -319,7 +319,7 @@ const timeago = datetime.isBefore(dayjs().subtract(1, 'w')) ? datetime.format('H
           {mediaList.length > 0 && (
             <div class="media-list">
               {mediaList.map((media, index) => (
-                <Media {...media} key={`media-${post.id ?? index}-${index}`} />
+                <Media {...media} />
               ))}
             </div>
           )}
@@ -327,7 +327,7 @@ const timeago = datetime.isBefore(dayjs().subtract(1, 'w')) ? datetime.format('H
           {shouldRenderEmbeds && (
             <div class="embed-list">
               {embedList.map((embed, index) => (
-                <div class="embed-item" key={`embed-${post.id ?? index}-${index}`}>
+                <div class="embed-item">
                   <Embed url={embed.url} oembedHtml={embed.oembedHtml} />
                 </div>
               ))}

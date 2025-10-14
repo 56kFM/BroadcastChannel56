@@ -41,11 +41,7 @@ const paginationClassList = {
     <Header channel={channel} />
   </slot>
   <div class="items">
-    {
-      posts.map((post, index) => (
-        <Item post={post} isItem={isItem} key={post.id ?? `${post.datetime ?? 'post'}-${index}`} />
-      ))
-    }
+    {posts.map((post, index) => <Item post={post} isItem={isItem} />)}
   </div>
 
   <div class:list={paginationClassList}>
