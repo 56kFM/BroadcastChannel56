@@ -17,7 +17,7 @@ export async function GET({ request, params, url }) {
       return Response.redirect(target.toString(), 302)
     }
     const response = await fetch(target.toString(), request)
-    return new Response(response.body, response)
+    return response
   }
   catch (error) {
     return new Response(error.message, { status: 500 })
