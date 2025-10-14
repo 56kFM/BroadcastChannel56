@@ -76,6 +76,63 @@ const extendAttributes = (
   additions: string[],
 ): string[] => dedupe([...(defaults?.[tag] ?? []), ...additions])
 
+const styleDisallowedPatterns = [
+  /\bexpression\s*\(/iu,
+  /\burl\s*\(\s*(['"])?\s*javascript:/iu,
+  /\burl\s*\(\s*(['"])?\s*data:text\/html/iu,
+  /\bbehaviou?r\s*:/iu,
+  /@import/iu,
+  /-moz-binding/iu,
+]
+
+const sanitizeStyleAttribute = (value: unknown): string | undefined => {
+  if (typeof value !== 'string') {
+    return undefined
+  }
+
+  const normalized = value.trim()
+
+  if (!normalized) {
+    return undefined
+  }
+
+  const declarations = normalized
+    .split(';')
+    .map((declaration) => declaration.trim())
+    .filter(Boolean)
+
+  const safeDeclarations = declarations.filter((declaration) => {
+    const comparable = declaration.toLowerCase()
+    return !styleDisallowedPatterns.some((pattern) => pattern.test(comparable))
+  })
+
+  if (safeDeclarations.length === 0) {
+    return undefined
+  }
+
+  return safeDeclarations.join('; ')
+}
+
+type AttributeRecord = Record<string, string | undefined>
+
+const applySharedAttributeTransforms = (
+  tagName: string,
+  attribs: AttributeRecord,
+): { tagName: string; attribs: AttributeRecord } => {
+  if (typeof attribs?.style !== 'undefined') {
+    const safeStyle = sanitizeStyleAttribute(attribs.style)
+
+    if (safeStyle) {
+      attribs.style = safeStyle
+    }
+    else {
+      delete attribs.style
+    }
+  }
+
+  return { tagName, attribs }
+}
+
 export function sanitizeHTML(html: string): string {
   const defaultAllowedTags = sanitizeHtml.defaults.allowedTags
   const allowedTags = Array.from(
@@ -160,23 +217,26 @@ export function sanitizeHTML(html: string): string {
     allowedIframeHostnames,
     nonTextTags: ['audio', 'video', 'iframe'],
     transformTags: {
+      '*': (tagName, attribs) => applySharedAttributeTransforms(tagName, attribs),
       a: (tagName, attribs) => {
-        if (attribs?.href) {
-          const href = String(attribs.href).trim()
+        const { attribs: anchorAttribs } = applySharedAttributeTransforms(tagName, attribs)
+
+        if (anchorAttribs?.href) {
+          const href = String(anchorAttribs.href).trim()
 
           const isInternal = /^(?:\/(?!\/)|\.\/|\.\.\/|#)/u.test(href)
 
           if (isInternal) {
-            if (attribs.target === '_blank') {
-              delete attribs.target
+            if (anchorAttribs.target === '_blank') {
+              delete anchorAttribs.target
             }
           }
           else {
-            if (!attribs.target) attribs.target = '_blank'
-            attribs.rel = ensureRelTokens(attribs.rel, ['noopener', 'noreferrer'])
+            if (!anchorAttribs.target) anchorAttribs.target = '_blank'
+            anchorAttribs.rel = ensureRelTokens(anchorAttribs.rel, ['noopener', 'noreferrer'])
           }
         }
-        return { tagName, attribs }
+        return { tagName, attribs: anchorAttribs }
       },
     },
     exclusiveFilter: (frame) => {

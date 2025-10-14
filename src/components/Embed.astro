@@ -1,5 +1,6 @@
 ---
 import { resolveEmbed } from '../lib/embeds'
+import { sanitizeHTML } from '../utils/sanitizeHTML'
 
 const { url, oembedHtml } = Astro.props as { url: string; oembedHtml?: string }
 
@@ -20,13 +21,17 @@ if (!resolved) {
   }
 }
 
+const rawHtml = typeof resolved?.html === 'string' ? resolved.html : null
+
 const isSoundCloudPlaceholder =
-  !fromLoader && typeof resolved?.html === 'string' && resolved.html.startsWith('<!-- SOUNDCloud_OEMBED')
+  !fromLoader && typeof rawHtml === 'string' && rawHtml.startsWith('<!-- SOUNDCloud_OEMBED')
+
+const sanitizedHtml = rawHtml ? sanitizeHTML(rawHtml) : null
 ---
 
 {
-  resolved && !isSoundCloudPlaceholder ? (
-    <Fragment set:html={resolved.html} />
+  sanitizedHtml && !isSoundCloudPlaceholder ? (
+    <Fragment set:html={sanitizedHtml} />
   ) : (
     <a href={url} rel="noopener noreferrer nofollow ugc">
       {url}
