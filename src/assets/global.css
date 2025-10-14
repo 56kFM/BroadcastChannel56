@@ -36,8 +36,8 @@ body {
   inline-size: 2.5rem;
   block-size: 2.5rem;
   border-radius: var(--radius-pill);
-  border: 1px solid rgba(148, 163, 184, 0.24);
-  background: rgba(36, 36, 44, 0.6);
+  border: 1px solid var(--slate-24);
+  background: var(--glass-60);
   color: var(--secondary-color);
   font-size: 1.5rem;
   text-decoration: none;
@@ -62,8 +62,8 @@ body {
 
   &:hover {
     transform: translateY(calc(-1 * var(--space-3xs)));
-    background: rgba(180, 180, 192, 0.2);
-    border-color: rgba(180, 180, 192, 0.45);
+    background: var(--border-soft);
+    border-color: var(--border-strong);
     box-shadow: var(--shadow-sm);
 
     img {
@@ -73,7 +73,7 @@ body {
 
   &:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 0.2rem rgba(180, 180, 192, 0.45);
+    box-shadow: 0 0 0 0.2rem var(--border-strong);
   }
 
   &:active {
