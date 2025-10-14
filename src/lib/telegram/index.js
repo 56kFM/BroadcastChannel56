@@ -21,7 +21,7 @@ function getVideoStickers($, item, { staticProxy, index }) {
     return `
     <div style="background-image: none; width: 256px;">
       <video src="${staticProxy + url}" width="100%" height="100%" alt="Video Sticker" preload="metadata" muted loop playsinline disablepictureinpicture controls>
-        <img class="sticker" src="${staticProxy + imgurl}" alt="Video Sticker" loading="${index > 15 ? 'eager' : 'lazy'}" />
+        <img class="sticker" src="${staticProxy + imgurl}" alt="Video Sticker" loading="${index > 15 ? 'eager' : 'lazy'}" decoding="async" />
       </video>
     </div>
     `
@@ -31,7 +31,7 @@ function getVideoStickers($, item, { staticProxy, index }) {
 function getImageStickers($, item, { staticProxy, index }) {
   return $(item).find('.tgme_widget_message_sticker')?.map((_index, image) => {
     const url = $(image)?.attr('data-webp')
-    return `<img class="sticker" src="${staticProxy + url}" style="width: 256px;" alt="Sticker" loading="${index > 15 ? 'eager' : 'lazy'}" />`
+    return `<img class="sticker" src="${staticProxy + url}" style="width: 256px;" alt="Sticker" loading="${index > 15 ? 'eager' : 'lazy'}" decoding="async" />`
   })?.get()?.join('')
 }
 
@@ -46,7 +46,7 @@ function getImages($, item, { staticProxy, index, title }) {
 
     return `
       <a class="image-preview-link image-preview-wrap" href="${imageSrc}" target="_blank" rel="noopener noreferrer">
-        <img src="${imageSrc}" alt="${title}" loading="${index > 15 ? 'eager' : 'lazy'}" />
+        <img src="${imageSrc}" alt="${title}" loading="${index > 15 ? 'eager' : 'lazy'}" decoding="async" />
       </a>
     `
   })?.get()
@@ -511,7 +511,7 @@ function getLinkPreview($, item, { staticProxy, index, embeds }) {
   const image = $(item).find('.link_preview_image')
   const src = image?.attr('style')?.match(/url\(["'](.*?)["']/i)?.[1]
   const imageSrc = src ? staticProxy + src : ''
-  image?.replaceWith(`<img class="link_preview_image" alt="${title}" src="${imageSrc}" loading="${index > 15 ? 'eager' : 'lazy'}" />`)
+  image?.replaceWith(`<img class="link_preview_image" alt="${title}" src="${imageSrc}" loading="${index > 15 ? 'eager' : 'lazy'}" decoding="async" />`)
   return $.html(link)
 }
 

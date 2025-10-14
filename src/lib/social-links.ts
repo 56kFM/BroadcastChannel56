@@ -1,16 +1,14 @@
 import type { AstroGlobal } from 'astro'
-import type { ImageMetadata } from 'astro'
-
-import applemusic from '../assets/applemusic.svg'
-import bandcamp from '../assets/bandcamp.svg'
-import soundcloud from '../assets/soundcloud.svg'
-import spotify from '../assets/spotify.svg'
-import telegram from '../assets/telegram.svg'
+import applemusic from '../assets/applemusic.svg?raw'
+import bandcamp from '../assets/bandcamp.svg?raw'
+import soundcloud from '../assets/soundcloud.svg?raw'
+import spotify from '../assets/spotify.svg?raw'
+import telegram from '../assets/telegram.svg?raw'
 import { getEnv } from './env'
 
 export type SocialLink = {
   href: string
-  icon: ImageMetadata
+  icon: string
   alt: string
 }
 
@@ -47,7 +45,7 @@ export const getSocialLinks = (env: ImportMetaEnv, astro: AstroGlobal): SocialLi
       icon: telegram,
       alt: 'Telegram',
     },
-  ] satisfies Array<{ href: unknown; icon: ImageMetadata; alt: string }>
+  ] satisfies Array<{ href: unknown; icon: string; alt: string }>
 
   return links.filter((link): link is SocialLink => isNonEmptyString(link.href))
 }

@@ -44,23 +44,20 @@
   --transition-slow: 520ms cubic-bezier(0.35, 0.15, 0.25, 1);
   --max-width-wrapper: min(64rem, 100% - clamp(var(--space-md), 7vw, var(--space-2xl)));
 
-/* Batch 2: design & breakpoint tokens */
---border-strong: rgba(180, 180, 192, 0.45);
---border-soft:   rgba(180, 180, 192, 0.2);
---slate-20:      rgba(148, 163, 184, 0.20);
---slate-22:      rgba(148, 163, 184, 0.22);
---slate-24:      rgba(148, 163, 184, 0.24);
---glass-50:      rgba(36, 36, 44, 0.50);
---glass-60:      rgba(36, 36, 44, 0.60);
---glass-92:      rgba(36, 36, 44, 0.92);
---panel-75:      rgba(32, 32, 40, 0.75);
---accent-azure-45: rgba(59, 130, 246, 0.45);
-
-/* Batch 2: design & breakpoint tokens */
---bp-xs: 480px;
---bp-sm: 40rem;
---bp-md: 48rem;
---bp-lg: 64rem;
+  --border-strong: rgba(180, 180, 192, 0.45);
+  --border-soft: rgba(180, 180, 192, 0.2);
+  --slate-20: rgba(148, 163, 184, 0.2);
+  --slate-22: rgba(148, 163, 184, 0.22);
+  --slate-24: rgba(148, 163, 184, 0.24);
+  --glass-50: rgba(36, 36, 44, 0.5);
+  --glass-60: rgba(36, 36, 44, 0.6);
+  --glass-92: rgba(36, 36, 44, 0.92);
+  --panel-75: rgba(32, 32, 40, 0.75);
+  --accent-azure-45: rgba(59, 130, 246, 0.45);
+  --bp-xs: 480px;
+  --bp-sm: 40rem;
+  --bp-md: 48rem;
+  --bp-lg: 64rem;
 }
 
 body {
@@ -229,12 +226,19 @@ a.site-title:focus-visible {
   transition: filter var(--transition-fast), transform var(--transition-fast);
   padding: var(--space-2xs);
   border-radius: var(--radius-sm);
+  display: inline-flex;
 }
 
 .social-icon:hover,
 .social-icon:focus-visible {
   filter: var(--icon-hover-filter);
   transform: translateY(calc(-1 * var(--space-3xs)));
+}
+
+.social-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 .breadcrumb-avatar {
