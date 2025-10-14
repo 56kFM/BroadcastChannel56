@@ -44,30 +44,35 @@ export async function onRequest(context, next) {
 
   const response = await next()
 
-  if (!response.bodyUsed) {
-    const contentType = response.headers.get('Content-Type') ?? ''
+  // If the response body was already read/locked, we can't modify headers safely.
+  if (response.bodyUsed) {
+    return response
+  }
 
-    if (contentType.startsWith('text/html')) {
-      const speculationPath = new URL('rules/prefetch.json', siteUrlObject).pathname
-      response.headers.set('Speculation-Rules', JSON.stringify({
-        prefetch: [
-          {
-            source: 'list',
-            urls: [speculationPath],
-          },
-        ],
-      }))
-    }
+  // Clone headers to a mutable instance
+  const headers = new Headers(response.headers)
+  const contentType = headers.get('Content-Type') ?? ''
 
-    if (!response.headers.has('Cache-Control')) {
-      response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=60')
-    }
+  // Add speculation rules header for HTML responses
+  if (contentType.startsWith('text/html')) {
+    const speculationPath = new URL('rules/prefetch.json', siteUrlObject).pathname
+    headers.set('Speculation-Rules', JSON.stringify({
+      prefetch: [
+        {
+          source: 'list',
+          urls: [speculationPath],
+        },
+      ],
+    }))
+  }
+
+  // Default caching if none provided upstream
+  if (!headers.has('Cache-Control')) {
+    headers.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=60')
   }
 
   // CSP NOTE:
-  // This runtime CSP is the single source of truth. Do not add or edit public/_headers to change CSP.
-  // Allowed external providers include Telegram widget (script + frames), YouTube nocookie, Vimeo, SoundCloud,
-  // Bandcamp, Spotify, Apple Music. If you add a new provider, update the lists below explicitly—no placeholders.
+  // Runtime CSP is the single source of truth.
   const cspDirectives = [
     'default-src \'self\'',
     'script-src \'self\' \'unsafe-inline\' https://telegram.org https://*.telegram.org',
@@ -80,7 +85,12 @@ export async function onRequest(context, next) {
     'upgrade-insecure-requests',
   ]
 
-  response.headers.set('Content-Security-Policy', cspDirectives.join('; '))
+  headers.set('Content-Security-Policy', cspDirectives.join('; '))
 
-  return response
+  // Return a new Response with updated headers
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  })
 }
