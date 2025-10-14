@@ -6,6 +6,8 @@ const targetWhitelist = [
   'cdn-telegram.org',
   'telesco.pe',
   'yandex.ru',
+  'telegram-cdn.org',
+  'telegra.ph',
 ]
 
 export async function GET({ request, params, url }) {
