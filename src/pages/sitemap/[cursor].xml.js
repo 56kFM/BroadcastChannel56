@@ -10,7 +10,7 @@ export async function GET(Astro) {
 
   const xmlUrls = posts.map(post => `
     <url>
-      <loc>${new URL(`posts/${post.id}`, siteUrl).toString()}</loc>
+      <loc>${new URL(`posts/${encodeURIComponent(String(post.id))}`, siteUrl).toString()}</loc>
       <lastmod>${new Date(post.datetime).toISOString()}</lastmod>
     </url>
   `).join('')

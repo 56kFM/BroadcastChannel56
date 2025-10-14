@@ -12,6 +12,9 @@ import Media from './Media.astro'
 const { BASE_URL } = Astro.locals
 const { post, isItem } = Astro.props
 
+const postIdPathSegment = encodeURIComponent(String(post?.id))
+const postPermalink = `${BASE_URL}posts/${postIdPathSegment}`
+
 const validatedEnv = validateEnv({
   env: import.meta.env,
   runtimeEnv: Astro.locals?.runtime?.env,
@@ -337,7 +340,7 @@ const timeago = datetime.isBefore(dayjs().subtract(1, 'w')) ? datetime.format('H
 
   <div class="time-box">
     <div class="time">
-      <a href={`${BASE_URL}posts/${post.id}`} title={post.datetime} class="time-link">
+      <a href={postPermalink} title={post.datetime} class="time-link">
         <time datetime={post.datetime} title={timeago}>{timeago}</time>
       </a>
     </div>
