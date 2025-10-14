@@ -115,6 +115,9 @@
   .tgme_widget_message_link_preview {
     margin-top: var(--space-sm);
     display: grid;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    contain: content !important;
     gap: var(--space-2xs);
     border-radius: 0;
     overflow: hidden;
@@ -362,16 +365,6 @@
   }
 }
 /* BEGIN direct: telegram preview fix v5 (grid-areas, image spans all rows) */
-:root {
-  --link-preview-thumb: 6.5rem;
-}
-
-.tgme_widget_message_link_preview {
-  max-width: 100% !important;
-  box-sizing: border-box !important;
-  contain: content !important;
-}
-
 .tgme_widget_message_link_preview:has(.link_preview_image) {
   display: grid !important;
   grid-template-columns: var(--link-preview-thumb, 6.5rem) minmax(0, 1fr) !important;
