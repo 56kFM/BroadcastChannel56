@@ -23,9 +23,13 @@ jobs:
       - run: pnpm run typecheck
       - run: pnpm run build
         env:
+          # CI_OFFLINE_START
           OFFLINE_BUILD: 'true'
+          # CI_OFFLINE_END
       - name: Canaries
         run: pnpm run test:canary
         env:
+          # CI_OFFLINE_START
           OFFLINE_BUILD: 'true'
+          # CI_OFFLINE_END
         continue-on-error: true

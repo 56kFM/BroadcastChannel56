@@ -782,7 +782,19 @@ export async function getChannelInfo(
     navigateFrom = '',
     direction = '',
   } = options ?? {}
+  // Where t.me can also be telegram.me, telegram.dog
+  const host = getEnv(import.meta.env, Astro, 'TELEGRAM_HOST')
+    ?? getEnv(import.meta.env, Astro, 'HOST')
+    ?? 't.me'
+  const channel = getEnv(import.meta.env, Astro, 'CHANNEL')
+  const staticProxy = getEnv(import.meta.env, Astro, 'STATIC_PROXY') ?? '/static/'
+  const baseUrl = Astro.locals?.BASE_URL ?? '/'
+  const normalizedTag = normalizeTag(tag)
   const embedsEnabled = (getEnv(import.meta.env, Astro, 'ENABLE_EMBEDS') ?? 'true') !== 'false'
+  const cacheKey = JSON.stringify({ before, after, q, type, id, tag, limit, navigateFrom, direction, enableEmbeds: embedsEnabled })
+  const cachedResult = cache.get(cacheKey)
+  // === NAV/CI MARKERS START ===
+  // Insert once: offline flag for CI, fetchPage helper, deterministic nav block, and limit/flags.
   const offline = (getEnv(import.meta.env, Astro, 'OFFLINE_BUILD') ?? 'false') === 'true'
   if (offline) {
     return {
@@ -794,30 +806,13 @@ export async function getChannelInfo(
       availableTags: [],
       tagIndex: {},
       selectedTag: undefined,
-      embedsEnabled,
+      embedsEnabled: true,
       hasNewer: false,
       hasOlder: false,
     }
   }
-  const cacheKey = JSON.stringify({ before, after, q, type, id, tag, limit, navigateFrom, direction, enableEmbeds: embedsEnabled })
-  const cachedResult = cache.get(cacheKey)
 
-  if (cachedResult) {
-    console.info('Match Cache', { before, after, q, type, id, tag, limit, navigateFrom, direction })
-    return JSON.parse(JSON.stringify(cachedResult))
-  }
-
-  // Where t.me can also be telegram.me, telegram.dog
-  const host = getEnv(import.meta.env, Astro, 'TELEGRAM_HOST')
-    ?? getEnv(import.meta.env, Astro, 'HOST')
-    ?? 't.me'
-  const channel = getEnv(import.meta.env, Astro, 'CHANNEL')
-  const staticProxy = getEnv(import.meta.env, Astro, 'STATIC_PROXY') ?? '/static/'
-  const baseUrl = Astro.locals?.BASE_URL ?? '/'
-
-  const normalizedTag = normalizeTag(tag)
-  const searchQuery = type === 'post' ? q : (q || (normalizedTag ? `#${normalizedTag}` : ''))
-
+  /* TELEGRAM_NAV_HELPERS_START */
   async function fetchPage({ before, after, searchQuery }) {
     const { load } = cheerio
     const url = id ? `https://${host}/${channel}/${id}?embed=1&mode=tme` : `https://${host}/s/${channel}`
@@ -839,14 +834,21 @@ export async function getChannelInfo(
     const staticProxy = getEnv(import.meta.env, Astro, 'STATIC_PROXY_ORIGIN')
     const baseUrl = getEnv(import.meta.env, Astro, 'SITE_URL') || Astro.locals.SITE_URL || '/'
     const items = $('.tgme_widget_message_wrap').toArray()
-    const posts = items.map((item, index) =>
-      getPost($, item, { channel, staticProxy, index, baseUrl, enableEmbeds: embedsEnabled }),
-    )?.filter(Boolean)?.reverse()?.filter(p => ['text'].includes(p.type) && p.id && p.content) ?? []
+    const posts = items
+      .map((item, index) => getPost($, item, { channel, staticProxy, index, baseUrl, enableEmbeds: true }))
+      ?.filter(Boolean)?.reverse()
+      ?.filter(p => ['text'].includes(p.type) && p.id && p.content) ?? []
     return { $, posts }
   }
+  /* TELEGRAM_NAV_HELPERS_END */
 
-  if (navigateFrom && (direction === 'newer' || direction === 'older')) {
-    const searchQuery = q || (normalizedTag ? `#${normalizedTag}` : undefined)
+  /* TELEGRAM_NAV_MODE_START */
+  if (options?.navigateFrom && (options?.direction === 'newer' || options?.direction === 'older')) {
+    if (cachedResult) {
+      return JSON.parse(JSON.stringify(cachedResult))
+    }
+    const { navigateFrom, direction, q: queryForNav } = options
+    const searchQuery = queryForNav || (normalizedTag ? `#${normalizedTag}` : undefined)
     const winA = direction === 'newer'
       ? await fetchPage({ after: navigateFrom, searchQuery })
       : await fetchPage({ before: navigateFrom, searchQuery })
@@ -860,8 +862,8 @@ export async function getChannelInfo(
     const fromNum = Number(navigateFrom)
     const nextNewer = merged.find(p => Number(p.id) > fromNum) || null
     const nextOlder = [...merged].reverse().find(p => Number(p.id) < fromNum) || null
-    const hasNewer = merged.length ? (Number(merged[merged.length - 1].id) > fromNum) : false
-    const hasOlder = merged.length ? (Number(merged[0].id) < fromNum) : false
+    const hasNewer = merged.length ? (Number(merged[merged.length - 1]?.id) > fromNum) : false
+    const hasOlder = merged.length ? (Number(merged[0]?.id) < fromNum) : false
     const picked = direction === 'newer' ? nextNewer : nextOlder
     const channelInfo = {
       posts: picked ? [picked] : [],
@@ -872,13 +874,22 @@ export async function getChannelInfo(
       availableTags: Object.keys(buildTagIndex(merged)).sort((a, b) => a.localeCompare(b)),
       tagIndex: buildTagIndex(merged),
       selectedTag: normalizedTag,
-      embedsEnabled,
+      embedsEnabled: true,
       hasNewer,
       hasOlder,
     }
     cache.set(cacheKey, channelInfo)
     return JSON.parse(JSON.stringify(channelInfo))
   }
+  /* TELEGRAM_NAV_MODE_END */
+  // === NAV/CI MARKERS END ===
+
+  if (cachedResult) {
+    console.info('Match Cache', { before, after, q, type, id, tag, limit, navigateFrom, direction })
+    return JSON.parse(JSON.stringify(cachedResult))
+  }
+
+  const searchQuery = type === 'post' ? q : (q || (normalizedTag ? `#${normalizedTag}` : ''))
 
   const url = id ? `https://${host}/${channel}/${id}?embed=1&mode=tme` : `https://${host}/s/${channel}`
   const headers = Object.fromEntries(Astro.request.headers)
@@ -921,22 +932,24 @@ export async function getChannelInfo(
   const selectedTag = normalizedTag
   const posts = allPosts
   const filteredPosts = selectedTag ? (tagIndex[selectedTag] ?? []) : posts
+  /* TELEGRAM_LIMIT_FLAGS_START */
   let returnedPosts = filteredPosts
-  if (Number.isInteger(limit) && limit > 0 && Array.isArray(filteredPosts)) {
-    // newest N (end of ascending array)
-    returnedPosts = filteredPosts.slice(-Math.min(limit, filteredPosts.length))
+  if (Number.isInteger(options?.limit) && options?.limit > 0 && Array.isArray(filteredPosts)) {
+    returnedPosts = filteredPosts.slice(-Math.min(options.limit, filteredPosts.length)) // newest N
   }
   let hasNewer = false
   let hasOlder = false
   if (returnedPosts.length === 1 && filteredPosts.length > 0) {
     const newestId = Number(filteredPosts[filteredPosts.length - 1].id)
+    const oldestId = Number(filteredPosts[0].id)
     const pickedId = Number(returnedPosts[0].id)
     hasNewer = pickedId < newestId
-    hasOlder = filteredPosts.length > 1 && pickedId > Number(filteredPosts[0].id)
+    hasOlder = pickedId > oldestId
   }
   else if (filteredPosts.length > returnedPosts.length) {
     hasOlder = true
   }
+  /* TELEGRAM_LIMIT_FLAGS_END */
 
   const channelInfo = {
     posts: returnedPosts,
