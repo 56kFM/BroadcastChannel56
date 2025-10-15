@@ -10,6 +10,7 @@ import Embed from './Embed.astro'
 import Media from './Media.astro'
 
 const { BASE_URL } = Astro.locals
+const BASE = Astro?.locals?.SITE_URL || Astro?.locals?.SITE_ORIGIN
 const { post, isItem } = Astro.props
 
 const postIdPathSegment = encodeURIComponent(String(post?.id))
@@ -112,7 +113,7 @@ let shouldRenderEmbeds = false
 let renderError: Error | null = null
 
 const fallbackText = typeof post?.text === 'string' ? post.text : ''
-const fallbackSafeHtml = fallbackText ? sanitizeHTML(fallbackText) : ''
+const fallbackSafeHtml = fallbackText ? sanitizeHTML(fallbackText, { baseUrl: BASE }) : ''
 const fallbackLinkUrls = new Set<string>()
 
 const allowListedUrl = (value: string | undefined | null) => {
@@ -152,7 +153,7 @@ let structuredData = null
 
 try {
   const rawContent = typeof post?.content === 'string' ? post.content : ''
-  const sanitizedContent = rawContent ? sanitizeHTML(rawContent) : ''
+  const sanitizedContent = rawContent ? sanitizeHTML(rawContent, { baseUrl: BASE }) : ''
   safeContent = sanitizedContent
   mediaList = Array.isArray(post?.media)
     ? post.media.filter((media: any): media is MediaItem =>

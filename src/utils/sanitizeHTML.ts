@@ -1,5 +1,10 @@
 import sanitizeHtml from 'sanitize-html'
 
+function safeOrigin(url?: string) {
+  if (!url) return undefined
+  try { return new URL(url).origin } catch { return undefined }
+}
+
 // Allowlist for provider iframes (must match invariants)
 const ALLOWED_IFRAME_HOSTS = [
   'www.youtube.com',
@@ -38,8 +43,10 @@ const allowedAttributes: Record<string, string[]> = {
   ],
 }
 
-export const sanitizeHTML = (dirty: string): string => {
-  return sanitizeHtml(dirty, {
+export function sanitizeHTML(html: string, opts?: { baseUrl?: string }) {
+  const baseOrigin = safeOrigin(opts?.baseUrl)
+
+  return sanitizeHtml(html, {
     /* SANITIZER_ALLOWLIST_START */
     // Ensure span[class] is allowed for emoji wrapper
     allowedTags,
@@ -66,11 +73,20 @@ export const sanitizeHTML = (dirty: string): string => {
     transformTags: {
       a: (tagName: any, attribs: any) => {
         const href = attribs?.href
-        const isHttp = typeof href === 'string' && /^https?:\/\//i.test(href)
-        if (isHttp) {
+        const isAbsolute = typeof href === 'string' && /^https?:\/\//i.test(href)
+        const isInternal =
+          typeof href === 'string' &&
+          (href.startsWith('/') || href.startsWith('./') || href.startsWith('../') ||
+            (isAbsolute && baseOrigin && (() => {
+              try { return new URL(href).origin === baseOrigin } catch { return false }
+            })()))
+
+        if (isAbsolute && !isInternal) {
           attribs.target = attribs.target || '_blank'
           const tokens = new Set([...(attribs.rel?.split(/\s+/u) ?? []), 'noopener','noreferrer','nofollow','ugc'])
           ;(attribs as any).rel = Array.from(tokens).join(' ')
+        } else {
+          if (attribs.target === '_blank') delete (attribs as any).target
         }
         return { tagName, attribs }
       },
