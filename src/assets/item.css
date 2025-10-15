@@ -55,20 +55,33 @@
     margin-top: clamp(var(--space-sm), 3vw, var(--space-lg));
   }
 
+  /* Masonry gallery (JS-free, doesn’t affect text box widths) */
   .image-list-container {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    grid-template-rows: masonry;
-    gap: var(--space-sm);
-    align-items: flex-start;
+    column-count: 1;
+    column-gap: var(--space-sm);
   }
 
+  @media (min-width: 40rem) {
+    .image-list-container { column-count: 2; }
+  }
+
+  /* Make items behave well inside columns */
+  .image-list-container > .image-preview-link,
+  .image-list-container > * {
+    display: block;
+    break-inside: avoid;
+    margin-bottom: var(--space-sm);
+  }
+
+  /* Hero first image on odd counts: span all columns */
   .image-list-container.image-list-odd > :first-child {
-    grid-column: 1 / 3;
+    column-span: all;        /* Chrome/Edge/Safari */
+    margin-bottom: var(--space-sm);
   }
 
-  .image-list-container img,
-  .image-list-container .image-preview-link img {
+  /* Keep images natural (no squish, no upscaling) */
+  .image-preview-link img,
+  .image-list-container img {
     width: auto;
     max-width: 100%;
     height: auto;
