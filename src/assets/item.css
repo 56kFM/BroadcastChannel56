@@ -326,18 +326,3 @@
   display: block;
 }
 
-/* TLP ONLY — if no thumbnail, collapse to a single text column (no blank space) */
-.tgme_widget_message_link_preview.no-thumb {
-  grid-template-columns: 1fr;           /* no left thumb column */
-  grid-template-rows: auto auto;        /* title + description */
-  grid-template-areas:
-    "title"
-    "desc";
-}
-
-/* Ensure any leftover thumb node (if present but empty) can’t occupy space */
-.tgme_widget_message_link_preview.no-thumb .link_preview_image,
-.tgme_widget_message_link_preview.no-thumb .link_preview_photo,
-.tgme_widget_message_link_preview.no-thumb .image {
-  display: none !important;
-}
