@@ -23,7 +23,7 @@ const isAllowedIframeHost = (host?: string): boolean =>
   !!host && ALLOWED_IFRAME_HOSTS.includes(host.toLowerCase() as any)
 
 const allowedTags = [
-  'a','abbr','acronym','b','blockquote','br','code','del','em','i','li','ol','p','pre','s','strong','sub','sup','u','ul','span',
+  'a','abbr','acronym','b','blockquote','br','code','del','em','i','li','ol','p','pre','s','strong','sub','sup','u','ul','span','div',
   'img','figure','picture','source',
   'audio','video',
   'iframe',
@@ -38,6 +38,7 @@ const allowedAttributes: Record<string, string[]> = {
   audio: ['src','controls','preload'],
   video: ['src','controls','preload','poster','width','height'],
   span: ['class'],
+  div: ['class','id'],
   iframe: [
     'src','title','width','height','allow','allowfullscreen','loading','referrerpolicy','frameborder',
   ],
