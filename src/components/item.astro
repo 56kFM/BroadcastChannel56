@@ -148,6 +148,8 @@ if (Array.isArray(post?.media)) {
 
 const fallbackLinks = Array.from(fallbackLinkUrls).map((url) => ({ url }))
 
+let structuredData = null
+
 try {
   const rawContent = typeof post?.content === 'string' ? post.content : ''
   const sanitizedContent = rawContent ? sanitizeHTML(rawContent) : ''
@@ -292,73 +294,134 @@ const renderedContentHtml = safeContent ? applyBandcampFix(safeContent) : ''
 const datetimeSource = typeof post?.datetime === 'string' ? post.datetime : ''
 const datetime = (datetimeSource ? dayjs(datetimeSource) : dayjs()).tz(timezone)
 const timeago = datetime.isBefore(dayjs().subtract(1, 'w')) ? datetime.format('HH:mm · ll · ddd') : datetime.fromNow()
+
+if (isItem) {
+  const plainHeadlineSource = fallbackText.replace(/\s+/g, ' ').trim()
+  const baseHeadline = plainHeadlineSource || channel || ''
+  const maxHeadlineLength = 110
+  const truncatedHeadline =
+    baseHeadline.length > maxHeadlineLength ? `${baseHeadline.slice(0, maxHeadlineLength).trimEnd()}…` : baseHeadline
+  const headline = truncatedHeadline
+
+  let imageUrl = null
+  if (!imageUrl && Array.isArray(post?.media)) {
+    for (const media of post.media) {
+      const safeUrl = allowListedUrl(media?.url)
+      if (!safeUrl) {
+        continue
+      }
+
+      const kind = typeof media?.kind === 'string' ? media.kind.toLowerCase() : ''
+      const mime = typeof media?.mime === 'string' ? media.mime.toLowerCase() : ''
+      if (kind.includes('image') || kind.includes('photo') || mime.startsWith('image/')) {
+        imageUrl = safeUrl
+        break
+      }
+    }
+  }
+
+  const ldAuthorName = typeof channel === 'string' && channel.length > 0 ? channel : undefined
+  const ldObject = {
+    '@context': 'https://schema.org',
+    '@type': 'SocialMediaPosting',
+    mainEntityOfPage: postPermalink,
+    headline,
+    author: ldAuthorName
+      ? {
+          '@type': 'Organization',
+          name: ldAuthorName,
+        }
+      : undefined,
+    url: postPermalink,
+  }
+
+  if (datetimeSource) {
+    ldObject.datePublished = datetimeSource
+  }
+
+  if (imageUrl) {
+    ldObject.image = imageUrl
+  }
+
+  if (!ldObject.author) {
+    delete ldObject.author
+  }
+
+  structuredData = ldObject
+}
+
+const structuredDataJson = structuredData ? JSON.stringify(structuredData) : ''
 ---
 
-<div class="item" style={{ 'view-transition-name': `post-${post.id}` }}>
-  <div class="item-content-container">
+<Fragment>
+  {isItem && structuredDataJson && <script type="application/ld+json" is:inline set:html={structuredDataJson} />}
+
+  <div class="item" style={{ 'view-transition-name': `post-${post.id}` }}>
+    <div class="item-content-container">
+      {
+        renderError ? (
+          <div class="text-box content">
+            {renderedFallbackHtml.length > 0 ? (
+              <div set:html={renderedFallbackHtml} />
+            ) : (
+              fallbackText.length > 0 && <p>{fallbackText}</p>
+            )}
+            {fallbackLinks.map((link) => (
+              <p class="embed-fallback">
+                <a href={link.url} rel="noopener noreferrer nofollow ugc">
+                  {link.url}
+                </a>
+              </p>
+            ))}
+          </div>
+        ) : (
+          <Fragment>
+            {renderedContentHtml.length > 0 && <div class={`text-box content`} set:html={renderedContentHtml} />}
+
+            {mediaList.length > 0 && (
+              <div class="media-list">
+                {mediaList.map((media, _index) => (
+                  <Media {...media} />
+                ))}
+              </div>
+            )}
+
+            {shouldRenderEmbeds && (
+              <div class="embed-list">
+                {embedList.map((embed, _index) => (
+                  <div class="embed-item">
+                    <Embed url={embed.url} oembedHtml={embed.oembedHtml} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </Fragment>
+        )
+      }
+    </div>
+
+    <div class="time-box">
+      <div class="time">
+        <a href={postPermalink} title={post.datetime} class="time-link">
+          <time datetime={post.datetime} title={timeago}>{timeago}</time>
+        </a>
+      </div>
+    </div>
+
     {
-      renderError ? (
-        <div class="text-box content">
-          {renderedFallbackHtml.length > 0 ? (
-            <div set:html={renderedFallbackHtml} />
-          ) : (
-            fallbackText.length > 0 && <p>{fallbackText}</p>
-          )}
-          {fallbackLinks.map((link) => (
-            <p class="embed-fallback">
-              <a href={link.url} rel="noopener noreferrer nofollow ugc">
-                {link.url}
-              </a>
-            </p>
-          ))}
+      COMMENTS && isItem && post?.id && (
+        <div class="comments">
+          <script
+            is:inline
+            async
+            src="https://telegram.org/js/telegram-widget.js"
+            data-telegram-discussion={`${channel}/${post.id}`}
+            data-comments-limit="50"
+            data-colorful="1"
+            data-dark="1"
+          />
         </div>
-      ) : (
-        <Fragment>
-          {renderedContentHtml.length > 0 && <div class={`text-box content`} set:html={renderedContentHtml} />}
-
-          {mediaList.length > 0 && (
-            <div class="media-list">
-              {mediaList.map((media, _index) => (
-                <Media {...media} />
-              ))}
-            </div>
-          )}
-
-          {shouldRenderEmbeds && (
-            <div class="embed-list">
-              {embedList.map((embed, _index) => (
-                <div class="embed-item">
-                  <Embed url={embed.url} oembedHtml={embed.oembedHtml} />
-                </div>
-              ))}
-            </div>
-          )}
-        </Fragment>
       )
     }
   </div>
-
-  <div class="time-box">
-    <div class="time">
-      <a href={postPermalink} title={post.datetime} class="time-link">
-        <time datetime={post.datetime} title={timeago}>{timeago}</time>
-      </a>
-    </div>
-  </div>
-
-  {
-    COMMENTS && isItem && post?.id && (
-      <div class="comments">
-        <script
-          is:inline
-          async
-          src="https://telegram.org/js/telegram-widget.js"
-          data-telegram-discussion={`${channel}/${post.id}`}
-          data-comments-limit="50"
-          data-colorful="1"
-          data-dark="1"
-        />
-      </div>
-    )
-  }
-</div>
+</Fragment>
