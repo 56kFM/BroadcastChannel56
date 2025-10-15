@@ -349,25 +349,27 @@ a.site-title:focus-visible {
 }
 
 .attachment-box img {
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  object-fit: cover;
+  inline-size: auto;
+  max-inline-size: 100%;
+  block-size: auto;
+  object-fit: contain;
   border: 1px solid var(--border-color);
   border-radius: 0;
   box-shadow: var(--shadow-sm);
 }
 
 /* Scope to Telegram link preview only */
-.tlp .image {
+.tlp .tlp__thumb {
   inline-size: 100%;
   block-size: auto;
 }
 
 .image-box > img {
   display: block;
-  width: 100%;
-  height: auto;
-  max-height: none;
+  inline-size: auto;
+  max-inline-size: 100%;
+  block-size: auto;
+  max-block-size: none;
   border: 1px solid var(--border-color);
   border-radius: 0;
   margin-block-end: var(--space-sm);

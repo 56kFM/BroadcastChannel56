@@ -22,12 +22,15 @@ const ALLOWED_IFRAME_HOSTS = [
 const isAllowedIframeHost = (host?: string): boolean =>
   !!host && ALLOWED_IFRAME_HOSTS.includes(host.toLowerCase() as any)
 
-const allowedTags = [
+const allowedTagsSet = new Set([
   'a','abbr','acronym','b','blockquote','br','code','del','em','i','li','ol','p','pre','s','strong','sub','sup','u','ul','span','div',
   'img','figure','picture','source',
   'audio','video',
   'iframe',
-]
+])
+allowedTagsSet.add('div')
+allowedTagsSet.add('span')
+const allowedTags = Array.from(allowedTagsSet)
 
 const allowedAttributes: Record<string, string[]> = {
   a: ['href','name','target','rel','title','aria-label','class','id'],
@@ -43,6 +46,17 @@ const allowedAttributes: Record<string, string[]> = {
     'src','title','width','height','allow','allowfullscreen','loading','referrerpolicy','frameborder',
   ],
 }
+
+const ensureAttributes = (tag: string, attrs: string[]) => {
+  const next = new Set(allowedAttributes[tag] ?? [])
+  attrs.forEach((attr) => next.add(attr))
+  allowedAttributes[tag] = Array.from(next)
+}
+
+ensureAttributes('div', ['class','id'])
+ensureAttributes('span', ['class','id'])
+ensureAttributes('img', ['class'])
+ensureAttributes('a', ['class'])
 
 export function sanitizeHTML(html: string, opts?: { baseUrl?: string }) {
   const baseOrigin = safeOrigin(opts?.baseUrl)
