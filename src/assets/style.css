@@ -357,6 +357,14 @@ a.site-title:focus-visible {
   box-shadow: var(--shadow-sm);
 }
 
+/* Do not upscale generic .image elements */
+.image {
+  inline-size: auto;
+  max-inline-size: 100%;
+  block-size: auto;
+  height: auto;
+}
+
 .image-box > img {
   display: block;
   width: 100%;
