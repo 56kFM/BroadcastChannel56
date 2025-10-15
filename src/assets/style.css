@@ -358,12 +358,6 @@ a.site-title:focus-visible {
   box-shadow: var(--shadow-sm);
 }
 
-/* Telegram link preview scoped image sizing */
-.tlp .image {
-  inline-size: 100%;
-  block-size: auto;
-}
-
 .image-box > img {
   display: block;
   inline-size: auto;

@@ -219,9 +219,22 @@
   }
 }
 
-/* Columns-based masonry only */
-.content .image-list-container { display: block; }
+@media (prefers-reduced-motion: reduce) {
+  .content .image-list-container > *,
+  .image-preview-link img {
+    transition: none !important;
+  }
+}
 
+/* PR-A: neutralize any lingering square/height forcing on post image containers */
+.content .image-list-container > .image-preview-link,
+.content .attachment-box .image-box {
+  aspect-ratio: auto !important;
+  block-size: auto !important;
+  height: auto !important;
+}
+
+/* PR-A: columns-based masonry (natural heights) */
 .image-list-container { column-count: 1; column-gap: var(--space-sm); }
 @media (min-width: 40rem) { .image-list-container { column-count: 2; } }
 @media (min-width: 64rem) { .image-list-container { column-count: 3; } }
@@ -232,46 +245,19 @@
   display: inline-block;
   break-inside: avoid;
   margin-bottom: var(--space-sm);
-  aspect-ratio: auto;
+  /* do NOT set aspect-ratio here */
 }
 
-/* hero-first on odd counts */
+/* hero-first on odd counts (markup toggles .image-list-odd) */
 .image-list-container.image-list-odd > :first-child {
   column-span: all;
   margin-bottom: var(--space-sm);
 }
 
-[popover] {
-  display: none;
-}
-
-[popover]:popover-open {
-  display: block;
-}
-
-.image-preview-wrap {
-  display: block;
-}
-
-.image-preview-link {
-  display: inline-block;
-  max-width: 100%;
-  outline: none;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  padding: 0;
-  margin-bottom: var(--space-sm);
-  text-decoration: none;
-}
-
-.image-preview-link:focus-visible img {
-  box-shadow: 0 0 0 3px var(--accent-azure-45);
-}
-
-/* Post images (single + gallery + attachments): natural size; shrink to fit; never upscale */
-:where(.content)
-:where(.image-preview-link img, .image-list-container img, .attachment-box .image-box img):not(.tlp__thumb) {
+/* PR-A: post images (single + gallery + attachments) — natural aspect, never upscale */
+.content .image-preview-link img,
+.content .image-list-container img,
+.content .attachment-box .image-box img {
   inline-size: auto !important;
   max-inline-size: 100% !important;
   block-size: auto !important;
@@ -279,96 +265,3 @@
   object-fit: contain !important;
   display: block;
 }
-
-.content .image-list-container > .image-preview-link,
-.content .attachment-box .image-box {
-  aspect-ratio: auto !important;
-  block-size: auto !important;
-  height: auto !important;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .content .image-list-container > *,
-  .image-preview-link img {
-    transition: none !important;
-  }
-}
-
-/* === Telegram Link Preview (namespaced) === */
-.tlp {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  grid-template-areas:
-    "thumb title"
-    "thumb desc"
-    "thumb site";
-  gap: var(--space-sm);
-  align-items: start;
-  margin-top: var(--space-sm);
-  padding: var(--space-sm) var(--space-md);
-  border: 1px solid currentColor;
-  border-radius: 0;
-  background: none;
-  box-shadow: none;
-  color: inherit;
-  font-family: inherit;
-  text-decoration: none;
-  transition: border-color var(--transition-fast), transform var(--transition-fast);
-  max-width: 100%;
-  box-sizing: border-box;
-  contain: content;
-  overflow: hidden;
-}
-
-.tlp:focus-visible {
-  border-color: currentColor;
-  transform: translateY(-1px);
-  outline: 2px solid rgba(59, 130, 246, 0.55);
-  outline-offset: 2px;
-}
-
-.tlp .tlp__title {
-  grid-area: title;
-  display: block;
-  font-size: clamp(var(--font-size-base), 0.95rem + 0.15vw, var(--font-size-lg));
-  font-weight: 600;
-  line-height: var(--line-height-tight);
-  color: inherit;
-}
-
-.tlp .tlp__desc {
-  grid-area: desc;
-  display: block;
-  font-size: var(--font-size-sm);
-  line-height: var(--line-height-base);
-  color: inherit;
-}
-
-.tlp .tlp__site {
-  grid-area: site;
-  display: block;
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  text-transform: none;
-  color: inherit;
-  opacity: .85;
-}
-
-/* Square thumbnail cell at left; fill both axes; warp allowed; no crop */
-.tlp .tlp__thumb {
-  grid-area: thumb;
-  --tlp-thumb: 96px;
-  inline-size: var(--tlp-thumb);
-  block-size: var(--tlp-thumb);
-  width: 100%;
-  height: 100%;
-  object-fit: fill;
-  aspect-ratio: 1 / 1;
-  background-size: 100% 100%;
-  background-position: 50% 50%;
-  background-repeat: no-repeat;
-  display: block;
-  border-radius: 0;
-}
-  
