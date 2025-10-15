@@ -793,8 +793,7 @@ export async function getChannelInfo(
   const embedsEnabled = (getEnv(import.meta.env, Astro, 'ENABLE_EMBEDS') ?? 'true') !== 'false'
   const cacheKey = JSON.stringify({ before, after, q, type, id, tag, limit, navigateFrom, direction, enableEmbeds: embedsEnabled })
   const cachedResult = cache.get(cacheKey)
-  // === NAV/CI MARKERS START ===
-  // Insert once: offline flag for CI, fetchPage helper, deterministic nav block, and limit/flags.
+
   const offline = (getEnv(import.meta.env, Astro, 'OFFLINE_BUILD') ?? 'false') === 'true'
   if (offline) {
     return {
@@ -805,16 +804,16 @@ export async function getChannelInfo(
       avatar: undefined,
       availableTags: [],
       tagIndex: {},
-      selectedTag: undefined,
-      embedsEnabled: true,
+      selectedTag: normalizedTag,
+      embedsEnabled,
       hasNewer: false,
       hasOlder: false,
     }
   }
 
-  /* TELEGRAM_NAV_HELPERS_START */
-  async function fetchPage({ before, after, searchQuery }) {
-    const { load } = cheerio
+  const toNumericId = value => Number.parseInt(String(value ?? ''), 10)
+
+  async function fetchPage({ before: beforeCursor, after: afterCursor, searchQuery }) {
     const url = id ? `https://${host}/${channel}/${id}?embed=1&mode=tme` : `https://${host}/s/${channel}`
     const headers = Object.fromEntries(Astro.request.headers)
     Object.keys(headers).forEach((key) => {
@@ -822,67 +821,123 @@ export async function getChannelInfo(
         delete headers[key]
       }
     })
+
     const html = await $fetch(url, {
       headers,
       query: {
-        before: before || undefined,
-        after: after || undefined,
+        before: beforeCursor || undefined,
+        after: afterCursor || undefined,
         q: searchQuery || undefined,
       },
+      retry: 3,
+      retryDelay: 100,
     })
-    const $ = load(html)
-    const staticProxy = getEnv(import.meta.env, Astro, 'STATIC_PROXY_ORIGIN')
-    const baseUrl = getEnv(import.meta.env, Astro, 'SITE_URL') || Astro.locals.SITE_URL || '/'
+
+    const $ = cheerio.load(html, {}, false)
+    const pageStaticProxy = getEnv(import.meta.env, Astro, 'STATIC_PROXY_ORIGIN') ?? staticProxy
+    const pageBaseUrl = getEnv(import.meta.env, Astro, 'SITE_URL') || Astro.locals.SITE_URL || baseUrl
     const items = $('.tgme_widget_message_wrap').toArray()
-    const posts = items
-      .map((item, index) => getPost($, item, { channel, staticProxy, index, baseUrl, enableEmbeds: true }))
-      ?.filter(Boolean)?.reverse()
-      ?.filter(p => ['text'].includes(p.type) && p.id && p.content) ?? []
+    const posts = (items
+      .map((item, index) => getPost($, item, { channel, staticProxy: pageStaticProxy, index, baseUrl: pageBaseUrl, enableEmbeds: embedsEnabled }))
+      ?.filter(Boolean) ?? [])
+      .filter(post => ['text'].includes(post.type) && post.id && post.content)
+      .sort((a, b) => Number(a.id) - Number(b.id))
+
     return { $, posts }
   }
-  /* TELEGRAM_NAV_HELPERS_END */
 
-  /* TELEGRAM_NAV_MODE_START */
   if (options?.navigateFrom && (options?.direction === 'newer' || options?.direction === 'older')) {
     if (cachedResult) {
       return JSON.parse(JSON.stringify(cachedResult))
     }
-    const { navigateFrom, direction, q: queryForNav } = options
-    const searchQuery = queryForNav || (normalizedTag ? `#${normalizedTag}` : undefined)
-    const winA = direction === 'newer'
-      ? await fetchPage({ after: navigateFrom, searchQuery })
-      : await fetchPage({ before: navigateFrom, searchQuery })
-    const winB = await fetchPage({ searchQuery })
-    const byId = new Map()
-    for (const p of [...winA.posts, ...winB.posts]) {
-      if (p?.id)
-        byId.set(String(p.id), p)
+
+    const rawPivot = toNumericId(options.navigateFrom)
+    const directionHint = options.direction
+    const pivotId = Number.isFinite(rawPivot)
+      ? rawPivot
+      : directionHint === 'older'
+        ? Number.POSITIVE_INFINITY
+        : Number.NEGATIVE_INFINITY
+    const searchQuery = options.q || (normalizedTag ? `#${normalizedTag}` : '') || undefined
+
+    const windows = []
+    const baseWindow = await fetchPage({ searchQuery })
+    windows.push(baseWindow)
+
+    if (directionHint === 'newer') {
+      windows.push(await fetchPage({ after: options.navigateFrom, searchQuery }))
     }
-    const merged = Array.from(byId.values()).sort((a, b) => Number(a.id) - Number(b.id))
-    const fromNum = Number(navigateFrom)
-    const nextNewer = merged.find(p => Number(p.id) > fromNum) || null
-    const nextOlder = [...merged].reverse().find(p => Number(p.id) < fromNum) || null
-    const hasNewer = merged.length ? (Number(merged[merged.length - 1]?.id) > fromNum) : false
-    const hasOlder = merged.length ? (Number(merged[0]?.id) < fromNum) : false
-    const picked = direction === 'newer' ? nextNewer : nextOlder
+    else {
+      windows.push(await fetchPage({ before: options.navigateFrom, searchQuery }))
+    }
+
+    const mergedById = new Map()
+    windows.forEach(({ posts }) => {
+      posts.forEach((post) => {
+        if (!post?.id) {
+          return
+        }
+        mergedById.set(String(post.id), post)
+      })
+    })
+
+    const mergedPosts = Array.from(mergedById.values()).sort((a, b) => Number(a.id) - Number(b.id))
+    const tagIndex = buildTagIndex(mergedPosts)
+    const availableTags = Object.keys(tagIndex).sort((a, b) => a.localeCompare(b))
+    const filteredPosts = normalizedTag ? tagIndex[normalizedTag] ?? [] : mergedPosts
+
+    let pickedPost = null
+    if (directionHint === 'newer') {
+      pickedPost = filteredPosts.find((post) => {
+        const value = toNumericId(post?.id)
+        return Number.isFinite(value) && value > pivotId
+      }) ?? null
+    }
+    else {
+      for (let i = filteredPosts.length - 1; i >= 0; i -= 1) {
+        const candidate = filteredPosts[i]
+        const value = toNumericId(candidate?.id)
+        if (Number.isFinite(value) && value < pivotId) {
+          pickedPost = candidate
+          break
+        }
+      }
+    }
+
+    const pickedNumeric = toNumericId(pickedPost?.id)
+    const hasNewer = pickedPost
+      ? filteredPosts.some((post) => {
+        const value = toNumericId(post?.id)
+        return Number.isFinite(value) && Number.isFinite(pickedNumeric) && value > pickedNumeric
+      })
+      : false
+    const hasOlder = pickedPost
+      ? filteredPosts.some((post) => {
+        const value = toNumericId(post?.id)
+        return Number.isFinite(value) && Number.isFinite(pickedNumeric) && value < pickedNumeric
+      })
+      : false
+
+    await hydrateSoundCloudEmbeds(pickedPost ? [pickedPost] : [], { enableEmbeds: embedsEnabled })
+
+    const windowForMeta = baseWindow
     const channelInfo = {
-      posts: picked ? [picked] : [],
-      title: winB.$('.tgme_channel_info_header_title')?.text(),
-      description: winB.$('.tgme_channel_info_description')?.text(),
-      descriptionHTML: modifyHTMLContent(winB.$, winB.$('.tgme_channel_info_description'))?.html(),
-      avatar: winB.$('.tgme_page_photo_image img')?.attr('src'),
-      availableTags: Object.keys(buildTagIndex(merged)).sort((a, b) => a.localeCompare(b)),
-      tagIndex: buildTagIndex(merged),
+      posts: pickedPost ? [pickedPost] : [],
+      title: windowForMeta.$('.tgme_channel_info_header_title')?.text(),
+      description: windowForMeta.$('.tgme_channel_info_description')?.text(),
+      descriptionHTML: modifyHTMLContent(windowForMeta.$, windowForMeta.$('.tgme_channel_info_description'))?.html(),
+      avatar: windowForMeta.$('.tgme_page_photo_image img')?.attr('src'),
+      availableTags,
+      tagIndex,
       selectedTag: normalizedTag,
-      embedsEnabled: true,
+      embedsEnabled,
       hasNewer,
       hasOlder,
     }
+
     cache.set(cacheKey, channelInfo)
     return JSON.parse(JSON.stringify(channelInfo))
   }
-  /* TELEGRAM_NAV_MODE_END */
-  // === NAV/CI MARKERS END ===
 
   if (cachedResult) {
     console.info('Match Cache', { before, after, q, type, id, tag, limit, navigateFrom, direction })
@@ -920,36 +975,39 @@ export async function getChannelInfo(
     return post
   }
   const allPosts = (
-    $('.tgme_channel_history  .tgme_widget_message_wrap')?.map((index, item) => {
-      return getPost($, item, { channel, staticProxy, index, baseUrl, enableEmbeds: embedsEnabled })
-    })?.get()?.reverse().filter(post => ['text'].includes(post.type) && post.id && post.content)
-  ) ?? []
-
-  await hydrateSoundCloudEmbeds(allPosts, { enableEmbeds: embedsEnabled })
+    $('.tgme_channel_history  .tgme_widget_message_wrap')
+      ?.map((index, item) => getPost($, item, { channel, staticProxy, index, baseUrl, enableEmbeds: embedsEnabled }))
+      ?.get() ?? []
+  )
+    .filter(post => ['text'].includes(post.type) && post.id && post.content)
+    .sort((a, b) => Number(a.id) - Number(b.id))
 
   const tagIndex = buildTagIndex(allPosts)
   const availableTags = Object.keys(tagIndex).sort((a, b) => a.localeCompare(b))
   const selectedTag = normalizedTag
-  const posts = allPosts
-  const filteredPosts = selectedTag ? (tagIndex[selectedTag] ?? []) : posts
-  /* TELEGRAM_LIMIT_FLAGS_START */
+  const filteredPosts = selectedTag ? (tagIndex[selectedTag] ?? []) : allPosts
   let returnedPosts = filteredPosts
   if (Number.isInteger(options?.limit) && options?.limit > 0 && Array.isArray(filteredPosts)) {
-    returnedPosts = filteredPosts.slice(-Math.min(options.limit, filteredPosts.length)) // newest N
+    const limitCount = Math.min(options.limit, filteredPosts.length)
+    returnedPosts = filteredPosts.slice(-limitCount)
   }
-  let hasNewer = false
-  let hasOlder = false
-  if (returnedPosts.length === 1 && filteredPosts.length > 0) {
-    const newestId = Number(filteredPosts[filteredPosts.length - 1].id)
-    const oldestId = Number(filteredPosts[0].id)
-    const pickedId = Number(returnedPosts[0].id)
-    hasNewer = pickedId < newestId
-    hasOlder = pickedId > oldestId
-  }
-  else if (filteredPosts.length > returnedPosts.length) {
-    hasOlder = true
-  }
-  /* TELEGRAM_LIMIT_FLAGS_END */
+
+  await hydrateSoundCloudEmbeds(returnedPosts, { enableEmbeds: embedsEnabled })
+
+  const newestReturnedId = toNumericId(returnedPosts.at(-1)?.id)
+  const oldestReturnedId = toNumericId(returnedPosts[0]?.id)
+  const hasNewer = returnedPosts.length > 0
+    ? filteredPosts.some((post) => {
+      const value = toNumericId(post?.id)
+      return Number.isFinite(value) && Number.isFinite(newestReturnedId) && value > newestReturnedId
+    })
+    : false
+  const hasOlder = returnedPosts.length > 0
+    ? filteredPosts.some((post) => {
+      const value = toNumericId(post?.id)
+      return Number.isFinite(value) && Number.isFinite(oldestReturnedId) && value < oldestReturnedId
+    })
+    : false
 
   const channelInfo = {
     posts: returnedPosts,

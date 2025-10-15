@@ -18,10 +18,12 @@ const posts = Array.isArray(channel?.posts) ? channel.posts : []
 const normalizedBasePath = paginationBasePath ? `${paginationBasePath.replace(/^\/+/u, '').replace(/\/+$/u, '')}/` : ''
 const encodeCursor = (cursor: unknown) => encodeURIComponent(String(cursor))
 
-// Single-post flows (home/after/before) compute cursors from the current post.
-const currentId = posts.at(-1)?.id ?? posts[0]?.id
-const beforeCursor = isItem ? currentId : posts[0]?.id
-const afterCursor = isItem ? currentId : posts.at(-1)?.id
+const singlePost = isItem ? (posts.at(-1) ?? posts[0]) : undefined
+const oldestPost = posts[0]
+const newestPost = posts.at(-1)
+
+const beforeCursor = isItem ? singlePost?.id : oldestPost?.id
+const afterCursor = isItem ? singlePost?.id : newestPost?.id
 
 const beforeHref =
   typeof beforeCursor === 'undefined' ? '' : `${BASE_URL}${normalizedBasePath}before/${encodeCursor(beforeCursor)}`
@@ -29,9 +31,48 @@ const afterHref =
   typeof afterCursor === 'undefined' ? '' : `${BASE_URL}${normalizedBasePath}after/${encodeCursor(afterCursor)}`
 
 // Prefer server-provided flags; fall back to heuristic
-const hasOlderPosts =
-  before && (channel?.hasOlder ?? (typeof beforeCursor !== 'undefined' && Number.parseInt(beforeCursor, 10) > 1))
-const hasNewerPosts = after && (channel?.hasNewer ?? typeof afterCursor !== 'undefined')
+const numericIds = posts
+  .map((post) => Number.parseInt(post?.id ?? '', 10))
+  .filter((value) => Number.isFinite(value))
+  .sort((a, b) => a - b)
+const pickedId =
+  isItem && Number.isFinite(Number.parseInt(singlePost?.id ?? '', 10))
+    ? Number.parseInt(singlePost?.id ?? '', 10)
+    : undefined
+const oldestId = numericIds[0]
+const newestId = numericIds.at(-1)
+
+const serverHasOlder = typeof channel?.hasOlder === 'boolean' ? channel.hasOlder : undefined
+const serverHasNewer = typeof channel?.hasNewer === 'boolean' ? channel.hasNewer : undefined
+
+const fallbackHasOlder = (() => {
+  if (!beforeCursor) {
+    return false
+  }
+  if (!numericIds.length) {
+    return false
+  }
+  if (isItem && Number.isFinite(pickedId) && Number.isFinite(oldestId)) {
+    return pickedId > oldestId
+  }
+  return !isItem && posts.length > 0
+})()
+
+const fallbackHasNewer = (() => {
+  if (!afterCursor) {
+    return false
+  }
+  if (!numericIds.length) {
+    return false
+  }
+  if (isItem && Number.isFinite(pickedId) && Number.isFinite(newestId)) {
+    return pickedId < newestId
+  }
+  return !isItem && posts.length > 0
+})()
+
+const hasOlderPosts = Boolean(before) && (serverHasOlder ?? fallbackHasOlder ?? false)
+const hasNewerPosts = Boolean(after) && (serverHasNewer ?? fallbackHasNewer ?? false)
 /* PAGINATION_END */
 /**
  * NOTE: Feed page size is controlled by the repo’s custom paginator.
