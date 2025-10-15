@@ -5,6 +5,7 @@ import flourite from 'flourite'
 import prism from '../prism'
 import { getEnv } from '../env'
 import { extractTagsFromText, normalizeTag } from '../tags'
+import { canonicalizeUrl } from '../../utils/canonicalizeUrl'
 
 const cache = new LRUCache({
   ttl: 1000 * 60 * 5, // 5 minutes
@@ -257,7 +258,7 @@ function extractEmbeddableLinks($, content) {
     return []
   }
 
-  const seen = new Set()
+  const seenCanonical = new Set()
   const links = []
 
   content
@@ -269,23 +270,28 @@ function extractEmbeddableLinks($, content) {
         return
       }
 
-      if (seen.has(href)) {
-        return
-      }
-
       // Skip direct-download type URLs (mp3, zip, pdf, etc.)
       if (isDirectDownloadUrl(href)) {
         return
       }
 
+      const canonical = canonicalizeUrl(href)
+      if (!canonical) {
+        return
+      }
+
       // Only collect known rich providers; ignore generic links here
-      const fam = getEmbedFamilyFromUrl(href)
+      const fam = getEmbedFamilyFromUrl(canonical)
       if (!fam) {
         return
       }
 
-      seen.add(href)
-      links.push({ url: href })
+      if (seenCanonical.has(canonical)) {
+        return
+      }
+
+      seenCanonical.add(canonical)
+      links.push({ url: canonical })
     })
 
   return links
@@ -477,15 +483,25 @@ function getLinkPreview($, item, { staticProxy, index, embeds }) {
   const description = $(item).find('.link_preview_description')?.text()
 
   const href = link?.attr('href')?.trim()
-  const previewFamily = getEmbedFamilyFromUrl(href)
-  const normalizedHref = normalizeUrlText(href)
+  const canonicalHref = canonicalizeUrl(href)
+  const previewFamily = getEmbedFamilyFromUrl(canonicalHref || href)
+  const normalizedHref = normalizeUrlText(canonicalHref || href)
 
   if (isDirectDownloadUrl(href)) {
     return ''
   }
 
   if (previewFamily && Array.isArray(embeds) && embeds.length > 0) {
-    const hasMatchingEmbed = embeds.some(embed => getEmbedFamilyFromUrl(embed?.url) === previewFamily)
+    const hasMatchingEmbed = embeds.some((embed) => {
+      const embedUrl = typeof embed?.url === 'string' ? embed.url : ''
+      const embedCanonical = canonicalizeUrl(embedUrl) || normalizeUrlText(embedUrl)
+      if (canonicalHref && embedCanonical && embedCanonical === canonicalHref) {
+        return true
+      }
+
+      const embedFamily = getEmbedFamilyFromUrl(embedCanonical || embedUrl)
+      return Boolean(embedFamily && embedFamily === previewFamily)
+    })
 
     if (hasMatchingEmbed) {
       return ''
@@ -742,18 +758,58 @@ function getPost($, item, { channel, staticProxy, index = 0, baseUrl = '/', enab
     }),
     media: Array.isArray(media) ? media : [],
     embeds: (() => {
-      const base = Array.isArray(embeds) ? embeds.slice() : []
+      const base = []
+      const seenCanonical = new Set()
+      const seenFamilies = new Set()
+
+      if (Array.isArray(embeds)) {
+        embeds.forEach((embed) => {
+          if (!embed) {
+            return
+          }
+
+          const rawUrl = typeof embed?.url === 'string' ? embed.url : ''
+          const canonical = canonicalizeUrl(rawUrl)
+          const canonicalKey = canonical || rawUrl.trim()
+          const family = getEmbedFamilyFromUrl(canonical || rawUrl)
+
+          if (canonicalKey && seenCanonical.has(canonicalKey)) {
+            return
+          }
+
+          if (canonicalKey) {
+            seenCanonical.add(canonicalKey)
+          }
+
+          if (family) {
+            seenFamilies.add(family)
+          }
+
+          base.push({
+            ...embed,
+            url: canonical || rawUrl || undefined,
+          })
+        })
+      }
+
       if (linkPreview) {
         const href = getHrefFromPreviewHtml(linkPreview, cheerio)
-        const previewFamily = getEmbedFamilyFromUrl(href)
-        const hasProvider = base.some((embed) => {
-          const fam = getEmbedFamilyFromUrl(embed?.url)
-          return (embed?.url && href && embed.url === href) || (fam && fam === previewFamily)
-        })
+        const previewCanonical = canonicalizeUrl(href)
+        const previewKey = previewCanonical || (href ? href.trim() : '')
+        const previewFamily = getEmbedFamilyFromUrl(previewCanonical || href)
+        const hasDuplicate = (previewKey && seenCanonical.has(previewKey))
+          || (previewFamily && seenFamilies.has(previewFamily))
 
-        if (!hasProvider) {
+        if (!hasDuplicate) {
+          if (previewKey) {
+            seenCanonical.add(previewKey)
+          }
+          if (previewFamily) {
+            seenFamilies.add(previewFamily)
+          }
+
           base.push({
-            url: href || undefined,
+            url: previewCanonical || href || undefined,
             oembedHtml: linkPreview,
           })
         }
