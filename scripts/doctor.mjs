@@ -1,81 +1,93 @@
 #!/usr/bin/env node
-import fs from "node:fs";
+import fs from 'node:fs'
+import path from 'node:path'
 
-function have(p){ try { fs.accessSync(p); return true; } catch { return false; } }
-function read(p){ try { return fs.readFileSync(p,"utf8"); } catch { return ""; } }
-function ok(re, s){ return re.test(s); }
+const cwd = process.cwd()
 
-const problems = [];
-
-// a) sanitizer allows span[class] and wraps emoji
-if (have("src/utils/sanitizeHTML.ts")) {
-  const t = read("src/utils/sanitizeHTML.ts");
-  if (!ok(/\bspan\b/i, t) || !ok(/allowedAttributes[^]*span[^]*class/i, t)) {
-    problems.push("sanitizeHTML.ts: span[class] not allowed");
-  }
-  if (!ok(/textFilter[^]*class="emoji"/i, t)) {
-    problems.push("sanitizeHTML.ts: emoji wrapper not present");
-  }
-}
-
-// b) list.astro has hasNewer/hasOlder guards or currentId cursors
-if (have("src/components/list.astro")) {
-  const t = read("src/components/list.astro");
-  if (!ok(/hasNewer|hasOlder/i, t)) {
-    problems.push("list.astro: missing hasNewer/hasOlder usage");
-  }
-}
-
-// c) workflows use offline build
-if (have(".github/workflows/ci.yml")) {
-  const t = read(".github/workflows/ci.yml");
-  if (!ok(/OFFLINE_BUILD:\s*'true'/, t)) {
-    problems.push("ci.yml: OFFLINE_BUILD env not set on build/canary steps");
-  }
-}
-if (have(".github/workflows/lighthouse.yml")) {
-  const t = read(".github/workflows/lighthouse.yml");
-  if (!ok(/OFFLINE_BUILD:\s*'true'/, t)) {
-    problems.push("lighthouse.yml: OFFLINE_BUILD env not set");
-  }
-}
-
-// d) package.json has esbuild (canaries)
-if (have("package.json")) {
+const read = (relativePath) => {
+  const fullPath = path.join(cwd, relativePath)
   try {
-    const pkg = JSON.parse(read("package.json"));
-    const dev = (pkg.devDependencies || {});
-    if (!("esbuild" in dev)) {
-      problems.push("package.json: devDependencies.esbuild missing");
+    return fs.readFileSync(fullPath, 'utf8')
+  }
+  catch {
+    return ''
+  }
+}
+
+const exists = (relativePath) => fs.existsSync(path.join(cwd, relativePath))
+
+const expectAll = (source, snippets) => snippets.every((snippet) => source.includes(snippet))
+
+const indexAstro = read('src/pages/index.astro')
+const afterAstro = read('src/pages/after/[cursor].astro')
+const beforeAstro = read('src/pages/before/[cursor].astro')
+const listAstro = read('src/components/list.astro')
+const sanitizerTs = read('src/utils/sanitizeHTML.ts')
+const ciWorkflow = read('.github/workflows/ci.yml')
+const lighthouseWorkflow = read('.github/workflows/lighthouse.yml')
+
+const expectedIframeHosts = [
+  'www.youtube.com',
+  'youtube.com',
+  'www.youtube-nocookie.com',
+  'youtube-nocookie.com',
+  'youtu.be',
+  'player.vimeo.com',
+  'w.soundcloud.com',
+  'open.spotify.com',
+  'embed.music.apple.com',
+  'bandcamp.com',
+]
+
+const walkFiles = (dirPath) => {
+  const fullDir = path.join(cwd, dirPath)
+  const entries = []
+  try {
+    for (const entry of fs.readdirSync(fullDir, { withFileTypes: true })) {
+      const relative = path.join(dirPath, entry.name)
+      if (entry.isDirectory()) {
+        entries.push(...walkFiles(relative))
+      }
+      else {
+        entries.push(relative)
+      }
     }
-  } catch {
-    problems.push("package.json: invalid JSON");
+  }
+  catch {}
+  return entries
+}
+
+const jsonLdFiles = []
+for (const file of walkFiles('src')) {
+  const content = read(file)
+  if (content.includes('application/ld+json')) {
+    jsonLdFiles.push(file)
   }
 }
 
-// e) pages use limit/navigateFrom
-if (have("src/pages/index.astro")) {
-  const t = read("src/pages/index.astro");
-  if (!ok(/getChannelInfo\([^)]*\{\s*[^}]*limit:\s*1/i, t)) {
-    problems.push("index.astro: getChannelInfo({ limit: 1 }) not found");
-  }
-}
-if (have("src/pages/after/[cursor].astro")) {
-  const t = read("src/pages/after/[cursor].astro");
-  if (!ok(/navigateFrom:\s*cursor/i, t) || !ok(/direction:\s*['"]newer['"]/i, t)) {
-    problems.push("after/[cursor].astro: navigateFrom/direction:'newer' missing");
-  }
-}
-if (have("src/pages/before/[cursor].astro")) {
-  const t = read("src/pages/before/[cursor].astro");
-  if (!ok(/navigateFrom:\s*cursor/i, t) || !ok(/direction:\s*['"]older['"]/i, t)) {
-    problems.push("before/[cursor].astro: navigateFrom/direction:'older' missing");
-  }
+const checks = {
+  home_limit_1: /getChannelInfo\s*\(\s*Astro\s*,\s*\{[^}]*limit\s*:\s*1/i.test(indexAstro),
+  after_route_direction: /navigateFrom\s*:\s*cursor/.test(afterAstro) && /direction\s*:\s*['"]newer['"]/i.test(afterAstro),
+  before_route_direction: /navigateFrom\s*:\s*cursor/.test(beforeAstro) && /direction\s*:\s*['"]older['"]/i.test(beforeAstro),
+  list_hasNewer_hasOlder: /hasNewerPosts/.test(listAstro) && /hasOlderPosts/.test(listAstro),
+  sanitizer_allowlist_hosts: expectAll(sanitizerTs, expectedIframeHosts),
+  sanitizer_span_class: /span\s*:\s*\[\s*'class'\s*\]/.test(sanitizerTs) && /allowedTags[^]*'span'/.test(sanitizerTs),
+  sanitizer_emoji_wrapper: /<span class="emoji">/.test(sanitizerTs) && /textFilter/.test(sanitizerTs),
+  ci_offline_build: /OFFLINE_BUILD:\s*'true'/.test(ciWorkflow),
+  lhci_offline_build: /OFFLINE_BUILD:\s*'true'/.test(lighthouseWorkflow),
+  jsonld_single_post:
+    jsonLdFiles.length === 1 &&
+    jsonLdFiles[0] === 'src/components/item.astro' &&
+    /isItem\s*&&\s*structuredDataJson/.test(read('src/components/item.astro')),
+  robots_route_exists: exists('src/pages/robots.txt.ts'),
+  sitemap_route_exists: exists('src/pages/sitemap.xml.ts'),
 }
 
-if (problems.length) {
-  console.error(JSON.stringify({ ok:false, problems }, null, 2));
-  process.exit(1);
-} else {
-  console.log(JSON.stringify({ ok:true, message:"doctor clean" }, null, 2));
-}
+const ok = Object.values(checks).every(Boolean)
+
+const payload = { ok, checks }
+
+const jsonOutput = JSON.stringify(payload, null, 2)
+console.log(jsonOutput)
+
+process.exit(ok ? 0 : 1)
