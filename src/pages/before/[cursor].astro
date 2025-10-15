@@ -14,6 +14,29 @@ const channel = await getChannelInfo(Astro, {
   limit: 1,
 })
 
+const post = channel?.posts?.[0]
+const KIND_HOSTS: Record<string, string[]> = {
+  youtube: ['www.youtube-nocookie.com', 'www.youtube.com', 'youtu.be'],
+  vimeo: ['player.vimeo.com'],
+  soundcloud: ['w.soundcloud.com'],
+  spotify: ['open.spotify.com'],
+  apple: ['embed.music.apple.com'],
+  bandcamp: ['bandcamp.com'],
+}
+const used = new Set<string>()
+if (post?.embeds) {
+  for (const e of post.embeds) {
+    const hs = KIND_HOSTS[e?.kind as string]
+    if (hs) hs.forEach((h) => used.add(h))
+    else if (e?.url) {
+      try {
+        used.add(new URL(e.url).hostname)
+      } catch {}
+    }
+  }
+}
+const preconnectHosts = Array.from(used)
+
 // If Telegram returns no posts for this cursor, avoid an empty page
 if (!Array.isArray(channel?.posts) || channel.posts.length === 0) {
   return Astro.redirect('/')
@@ -21,5 +44,16 @@ if (!Array.isArray(channel?.posts) || channel.posts.length === 0) {
 
 channel.seo = { noindex: true }
 ---
+
+<Fragment slot="head">
+  {
+    preconnectHosts.map((h) => (
+      <>
+        <link rel="preconnect" href={'https://' + h} crossorigin />
+        <link rel="dns-prefetch" href={'//' + h} />
+      </>
+    ))
+  }
+</Fragment>
 
 <List channel={channel} isItem={true} paginationGap={true} />
