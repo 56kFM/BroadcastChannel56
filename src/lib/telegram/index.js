@@ -728,6 +728,7 @@ function getPost($, item, { channel, staticProxy, index = 0, baseUrl = '/', enab
   const embeds = enableEmbeds ? extractEmbeddableLinks($, content) : []
   const linkPreview = getLinkPreview($, item, { staticProxy, index, embeds })
   const contentHtml = content?.html()
+  let inlineSuppressedWhenProviderPresent = false
 
   return {
     id,
@@ -760,8 +761,16 @@ function getPost($, item, { channel, staticProxy, index = 0, baseUrl = '/', enab
     media: Array.isArray(media) ? media : [],
     embeds: (() => {
       const base = []
-      const seenCanonical = new Set()
+      const seenCanonical = new Map()
       const seenFamilies = new Set()
+      const providerFamiliesSeen = new Set()
+
+      const markCanonical = (canonicalKey, info) => {
+        if (!canonicalKey) {
+          return
+        }
+        seenCanonical.set(canonicalKey, info)
+      }
 
       if (Array.isArray(embeds)) {
         embeds.forEach((embed) => {
@@ -773,17 +782,33 @@ function getPost($, item, { channel, staticProxy, index = 0, baseUrl = '/', enab
           const canonical = canonicalizeUrl(rawUrl)
           const canonicalKey = canonical || rawUrl.trim()
           const family = getEmbedFamilyFromUrl(canonical || rawUrl)
-
-          if (canonicalKey && seenCanonical.has(canonicalKey)) {
-            return
-          }
+          const isProviderFamily = Boolean(family)
 
           if (canonicalKey) {
-            seenCanonical.add(canonicalKey)
+            const existing = seenCanonical.get(canonicalKey)
+            if (existing) {
+              if (existing.source === 'preview' && isProviderFamily) {
+                base[existing.index] = {
+                  ...embed,
+                  url: canonical || rawUrl || undefined,
+                }
+                markCanonical(canonicalKey, { index: existing.index, source: 'provider', family })
+                if (family) {
+                  seenFamilies.add(family)
+                  providerFamiliesSeen.add(family)
+                }
+                inlineSuppressedWhenProviderPresent = true
+              }
+              return
+            }
           }
+
+          const index = base.length
+          markCanonical(canonicalKey, { index, source: isProviderFamily ? 'provider' : 'inline', family })
 
           if (family) {
             seenFamilies.add(family)
+            providerFamiliesSeen.add(family)
           }
 
           base.push({
@@ -798,13 +823,20 @@ function getPost($, item, { channel, staticProxy, index = 0, baseUrl = '/', enab
         const previewCanonical = canonicalizeUrl(href)
         const previewKey = previewCanonical || (href ? href.trim() : '')
         const previewFamily = getEmbedFamilyFromUrl(previewCanonical || href)
-        const hasDuplicate = (previewKey && seenCanonical.has(previewKey))
+        const existing = previewKey ? seenCanonical.get(previewKey) : null
+        const hasDuplicate = (previewKey && Boolean(existing))
           || (previewFamily && seenFamilies.has(previewFamily))
+        const providerAlreadyPresent = Boolean((existing && existing.source === 'provider')
+          || (previewFamily && providerFamiliesSeen.has(previewFamily)))
+
+        if (hasDuplicate && providerAlreadyPresent) {
+          inlineSuppressedWhenProviderPresent = true
+        }
 
         if (!hasDuplicate) {
-          if (previewKey) {
-            seenCanonical.add(previewKey)
-          }
+          const index = base.length
+          markCanonical(previewKey, { index, source: 'preview', family: previewFamily })
+
           if (previewFamily) {
             seenFamilies.add(previewFamily)
           }
@@ -818,6 +850,9 @@ function getPost($, item, { channel, staticProxy, index = 0, baseUrl = '/', enab
 
       return base
     })(),
+    receipt: {
+      inline_suppressed_when_provider_present: inlineSuppressedWhenProviderPresent,
+    },
     embedsEnabled: Boolean(enableEmbeds),
   }
 }

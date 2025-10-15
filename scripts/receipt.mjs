@@ -21,6 +21,10 @@ const commit = sh("git rev-parse --short HEAD");
 const diffstat = sh("git diff --staged --name-status || true") || sh("git diff --name-status || true");
 
 // Common sentinels to prove key files contain the expected markers (if present)
+const inlineSuppressedWhenProviderPresent = Boolean(
+  sentinel("src/lib/telegram/index.js", /inline_suppressed_when_provider_present/),
+)
+
 const sentinels = [
   ["src/utils/sanitizeHTML.ts", /(textFilter|class="emoji"|allowedAttributes[^]*span)/],
   ["src/components/list.astro", /(hasNewer|hasOlder|beforeCursor|afterCursor)/],
@@ -29,6 +33,6 @@ const sentinels = [
 ].map(([p, re]) => [p, sentinel(p, re)]);
 
 console.log(JSON.stringify({
-  receipt: { branch, commit, diffstat },
+  receipt: { branch, commit, diffstat, inline_suppressed_when_provider_present: inlineSuppressedWhenProviderPresent },
   sentinels
 }, null, 2));
