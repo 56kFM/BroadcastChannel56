@@ -36,3 +36,8 @@ jobs:
           OFFLINE_BUILD: 'true'
           # CI_OFFLINE_END
         continue-on-error: true
+      - name: Unit tests (non-blocking)
+        run: pnpm test:unit
+        env:
+          OFFLINE_BUILD: 'true'
+        continue-on-error: true
