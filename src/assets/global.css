@@ -143,3 +143,27 @@ audio {
     filter: brightness(0.95) contrast(1.05);
   }
 }
+
+/* PR3: pagination arrow links accessibility */
+.page {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  min-height: 2rem;
+  padding: 0.25rem 0.375rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border-subtle);
+  text-decoration: none;
+}
+
+.page:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-xs);
+}
+
+.page:focus-visible {
+  outline: 2px solid var(--focus-ring-color);
+  outline-offset: 2px;
+  box-shadow: none;
+}
