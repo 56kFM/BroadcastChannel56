@@ -55,41 +55,6 @@
     margin-top: clamp(var(--space-sm), 3vw, var(--space-lg));
   }
 
-  /* Use columns-based masonry; disable legacy grid here */
-  .image-list-container {
-    display: block;
-  }
-
-  .image-list-container {
-    column-count: 1;
-    column-gap: var(--space-sm);
-  }
-  @media (min-width: 40rem) { .image-list-container { column-count: 2; } }
-  @media (min-width: 64rem) { .image-list-container { column-count: 3; } }
-  @media (min-width: 90rem) { .image-list-container { column-count: 4; } }
-
-  .image-list-container > .image-preview-link,
-  .image-list-container > * {
-    display: block;
-    break-inside: avoid;
-    margin-bottom: var(--space-sm);
-  }
-
-  /* Hero-first on odd counts (already in markup via .image-list-odd) */
-  .image-list-container.image-list-odd > :first-child {
-    column-span: all;
-    margin-bottom: var(--space-sm);
-  }
-
-  /* Keep images natural (no squish, no upscaling) */
-  .image-preview-link img,
-  .image-list-container img {
-    width: auto;
-    max-width: 100%;
-    height: auto;
-    display: block;
-  }
-
   img {
     display: block;
     width: auto;
@@ -336,6 +301,27 @@
   }
 }
 
+/* Use columns-based masonry; disable conflicting grid here */
+.content .image-list-container { display: block; }
+
+.image-list-container { column-count: 1; column-gap: var(--space-sm); }
+@media (min-width: 40rem) { .image-list-container { column-count: 2; } }
+@media (min-width: 64rem) { .image-list-container { column-count: 3; } }
+@media (min-width: 90rem) { .image-list-container { column-count: 4; } }
+
+.image-list-container > .image-preview-link,
+.image-list-container > * {
+  display: block;
+  break-inside: avoid;
+  margin-bottom: var(--space-sm);
+}
+
+/* hero-first on odd counts (your markup already adds .image-list-odd) */
+.image-list-container.image-list-odd > :first-child {
+  column-span: all;
+  margin-bottom: var(--space-sm);
+}
+
 [popover] {
   display: none;
 }
@@ -364,14 +350,17 @@
   box-shadow: 0 0 0 3px var(--accent-azure-45);
 }
 
-/* Post images: natural width; shrink to fit; never upscale */
-.image-preview-link img {
-  inline-size: auto !important;      /* natural width */
-  max-inline-size: 100% !important;  /* shrink to column if needed */
-  block-size: auto !important;       /* natural height */
-  height: auto !important;           /* compat */
+/* Post images (gallery & single): natural size; shrink to fit; never upscale */
+.image-preview-link img,
+.image-list-container img,
+.attachment-box .image-box img {
+  /* logical sizing so we override earlier logical props */
+  inline-size: auto !important;       /* natural width */
+  max-inline-size: 100% !important;   /* shrink to column/container if needed */
+  block-size: auto !important;        /* natural height */
+  height: auto !important;            /* compat */
   display: block;
-  border-radius: var(--radius-md);
+  /* keep any existing border-radius if present; don’t add new radius here */
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -435,25 +424,18 @@
   :root { --link-preview-thumb: 6.25rem; }
 }
 /* END direct: telegram preview tweak v6 */
-/* Prevent upscaling/stretching inside media gallery & hero */
-.content .image-list-container .image-preview-link img,
-.content .image-list-container img,
-.content .media-hero .image-preview-link img,
-.content .media-hero img {
-  width: auto !important;     /* don’t force 100% width */
-  max-width: 100% !important; /* still shrink to fit the column */
-  height: auto !important;    /* preserve aspect ratio */
-  display: block;
-}
-/* Telegram link preview: thumbnail cell only (OK to warp; no crop) */
+/* Telegram link preview thumbnails ONLY (OK to warp; no crop) */
 .tgme_widget_message_link_preview .link_preview_image,
 .tgme_widget_message_link_preview .image {
+  /* fill the thumbnail slot both directions */
   inline-size: 100% !important;
   block-size: 100% !important;
   width: 100% !important;
   height: 100% !important;
-  object-fit: fill !important;           /* stretch both ways; no cropping */
-  background-size: 100% 100% !important; /* if thumb is via background */
+  object-fit: fill !important;            /* stretch; do not crop */
+
+  /* if preview uses a background-image element instead of <img> */
+  background-size: 100% 100% !important;
   background-position: 50% 50% !important;
   background-repeat: no-repeat !important;
 }
