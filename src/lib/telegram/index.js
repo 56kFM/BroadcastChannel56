@@ -649,9 +649,25 @@ function linkifyHashtags($, root, { baseUrl = '/' } = {}) {
 
 function modifyHTMLContent($, content, { index, baseUrl } = {}) {
   const normalizedBaseUrl = ensureBaseUrl(baseUrl)
+  const $content = $(content)
 
-  $(content).find('.emoji')?.removeAttr('style')
-  $(content).find('a')?.each((_index, a) => {
+  // Add Telegram Link Preview namespace classes so CSS won't leak
+  const $previews = $content.find('.tgme_widget_message_link_preview')
+  $previews.each((_, el) => {
+    const $pv = $(el)
+    $pv.addClass('tlp') // Telegram Link Preview root
+
+    // Mark the thumbnail element: Telegram uses .link_preview_image/.image or an <img>
+    const $candidateThumb = $pv.find('.link_preview_image, .image').first()
+    const $thumb = $candidateThumb.length ? $candidateThumb : $pv.find('img').first()
+
+    if ($thumb.length) {
+      $thumb.addClass('tlp-thumb') // thumbnail inside preview
+    }
+  })
+
+  $content.find('.emoji')?.removeAttr('style')
+  $content.find('a')?.each((_index, a) => {
     const anchor = $(a)
     const anchorText = anchor?.text() ?? ''
     const href = anchor?.attr('href') ?? ''
@@ -669,13 +685,13 @@ function modifyHTMLContent($, content, { index, baseUrl } = {}) {
         ?.addClass('hashtag')
     }
   })
-  $(content).find('tg-spoiler')?.each((_index, spoiler) => {
+  $content.find('tg-spoiler')?.each((_index, spoiler) => {
     const id = `spoiler-${index}-${_index}`
     $(spoiler)?.attr('id', id)
       ?.wrap('<label class="spoiler-button"></label>')
       ?.before(`<input type="checkbox" />`)
   })
-  $(content).find('pre').each((_index, pre) => {
+  $content.find('pre').each((_index, pre) => {
     try {
       $(pre).find('br')?.replaceWith('\n')
 
@@ -688,7 +704,7 @@ function modifyHTMLContent($, content, { index, baseUrl } = {}) {
       console.error(error)
     }
   })
-  return linkifyHashtags($, content, { baseUrl })
+  return linkifyHashtags($, $content, { baseUrl })
 }
 
 function buildTagIndex(posts) {
