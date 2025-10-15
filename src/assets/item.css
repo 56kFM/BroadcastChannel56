@@ -362,11 +362,12 @@
   box-shadow: 0 0 0 3px var(--accent-azure-45);
 }
 
+/* Post images (gallery & single): natural size; shrink to fit; never upscale */
 .image-preview-link img {
-  inline-size: auto;          /* natural width */
-  max-inline-size: 100%;      /* shrink to fit the column if needed */
-  block-size: auto;           /* natural height */
-  height: auto;               /* compat */
+  inline-size: auto;       /* natural width */
+  max-inline-size: 100%;   /* shrink to column/container if needed */
+  block-size: auto;        /* natural height */
+  height: auto;
   display: block;
   border-radius: var(--radius-md);
 }
@@ -441,4 +442,16 @@
   max-width: 100% !important; /* still shrink to fit the column */
   height: auto !important;    /* preserve aspect ratio */
   display: block;
+}
+/* Telegram link preview: left-side thumbnail cell ONLY (OK to warp; no crop) */
+.tgme_widget_message_link_preview .link_preview_image,
+.tgme_widget_message_link_preview .image {
+  inline-size: 100% !important;
+  block-size: 100% !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: fill !important;      /* stretch to fill cell; no cropping */
+  background-size: 100% 100% !important;  /* if thumbnail is via background */
+  background-position: 50% 50% !important;
+  background-repeat: no-repeat !important;
 }
