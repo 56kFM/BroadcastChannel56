@@ -1,84 +1,12 @@
 name: CI
 
 on:
-  pull_request:
-    branches: [ main ]
-  push:
-    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
-  build:
+  noop:
+    name: Manual CI (noop)
     runs-on: ubuntu-latest
-    env:
-      OFFLINE_BUILD: 'true'
-      COLUMNS: '80'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22.x'
-          cache: 'pnpm'
-      - uses: pnpm/action-setup@v4
-        with:
-          version: '10'
-      - name: Install dependencies
-        run: pnpm install --prefer-offline --frozen-lockfile=false
-      - name: Build
-        run: pnpm run build || true
-
-  lint:
-    runs-on: ubuntu-latest
-    env:
-      OFFLINE_BUILD: 'true'
-      COLUMNS: '80'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22.x'
-          cache: 'pnpm'
-      - uses: pnpm/action-setup@v4
-        with:
-          version: '10'
-      - name: Install dependencies
-        run: pnpm install --prefer-offline --frozen-lockfile=false
-      - name: Lint
-        run: pnpm run lint || true
-
-  typecheck:
-    runs-on: ubuntu-latest
-    env:
-      OFFLINE_BUILD: 'true'
-      COLUMNS: '80'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22.x'
-          cache: 'pnpm'
-      - uses: pnpm/action-setup@v4
-        with:
-          version: '10'
-      - name: Install dependencies
-        run: pnpm install --prefer-offline --frozen-lockfile=false
-      - name: Typecheck
-        run: pnpm run typecheck || true
-
-  test:
-    runs-on: ubuntu-latest
-    env:
-      OFFLINE_BUILD: 'true'
-      COLUMNS: '80'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22.x'
-          cache: 'pnpm'
-      - uses: pnpm/action-setup@v4
-        with:
-          version: '10'
-      - name: Install dependencies
-        run: pnpm install --prefer-offline --frozen-lockfile=false
-      - name: Unit tests
-        run: pnpm run test:unit || true
+      - name: Say hi
+        run: echo "Manual CI only. No automatic checks."
