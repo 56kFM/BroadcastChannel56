@@ -29,7 +29,7 @@ function Ensure-TextFile([string]$Path, [string]$Content) {
   if ($needsWrite) {
     Backup-File $Path
     $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-    [System.IO.File]::WriteAllText((Resolve-Path -LiteralPath $Path), $Content, $utf8NoBom)
+    [System.IO.File]::WriteAllText($Path, $Content, $utf8NoBom)
     Write-Ok "Wrote $Path"
   } else {
     Write-Ok "Up-to-date: $Path"

@@ -12,7 +12,7 @@
     "astro": "astro",
     "lint": "eslint \"src/**/*.{ts,tsx,js,jsx,astro}\"",
     "lint:fix": "eslint \"src/**/*.{ts,tsx,js,jsx,astro}\" --fix",
-    "postinstall": "node scripts/postinstall.cjs",
+    "postinstall": "test -d .git && simple-git-hooks || true",
     "check": "pnpm exec astro check",
     "typecheck": "pnpm exec tsc --noEmit",
     "test:canary": "node tests/canaries/sanitize-canary.mjs"

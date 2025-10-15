@@ -8,8 +8,8 @@ if (!existsSync('.git')) {
   process.exit(0);
 }
 
-const isWin = process.platform === 'win32';
 // Prefer local .bin shim if present
+const isWin = process.platform === 'win32';
 const binPath = isWin
   ? path.join('node_modules', '.bin', 'simple-git-hooks.cmd')
   : path.join('node_modules', '.bin', 'simple-git-hooks');
