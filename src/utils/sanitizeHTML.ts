@@ -1,7 +1,5 @@
 import sanitizeHtml from 'sanitize-html'
 
-const dedupe = (values: string[] = []) => Array.from(new Set(values))
-
 // Allowlist for provider iframes (must match invariants)
 const ALLOWED_IFRAME_HOSTS = [
   'www.youtube.com',
@@ -50,7 +48,7 @@ export const sanitizeHTML = (dirty: string): string => {
     allowedSchemes: ['http', 'https', 'data'],
 
     transformTags: {
-      a: (tagName, attribs) => {
+      a: (tagName: any, attribs: any) => {
         const href = attribs?.href
         const isHttp = typeof href === 'string' && /^https?:\/\//i.test(href)
         if (isHttp) {
@@ -60,14 +58,14 @@ export const sanitizeHTML = (dirty: string): string => {
         }
         return { tagName, attribs }
       },
-      img: (tagName, attribs) => {
+      img: (tagName: any, attribs: any) => {
         if (attribs) {
           if (!attribs.loading) (attribs as any).loading = 'lazy'
           if (!attribs.decoding) (attribs as any).decoding = 'async'
         }
         return { tagName, attribs }
       },
-      iframe: (tagName, attribs) => {
+      iframe: (tagName: any, attribs: any) => {
         const src = attribs?.src
         try {
           const u = new URL(src!, 'https://example.com')
@@ -78,7 +76,7 @@ export const sanitizeHTML = (dirty: string): string => {
       },
     },
 
-    exclusiveFilter: (frame) => {
+    exclusiveFilter: (frame: any) => {
       if (frame.tag === 'iframe') {
         try {
           const u = new URL(frame.attribs?.src, 'https://example.com')

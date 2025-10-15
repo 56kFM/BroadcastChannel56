@@ -23,7 +23,7 @@ channel.seo = {
   {
     tags.length > 0 && (
       <div class="tag-collection" role="list">
-        {tags.map((tag) => (
+        {tags.map((tag: any) => (
           <a href={`${BASE_URL}tags/${encodeURIComponent(tag)}/`} class="item-tag" role="listitem" title={`#${tag}`}>
             #{tag}
           </a>
