@@ -95,8 +95,6 @@
 
   .tlp {
     margin-top: var(--space-sm);
-    display: grid;
-    gap: var(--space-2xs);
     border-radius: 0;
     overflow: hidden;
     background: none;
@@ -110,7 +108,7 @@
       border-color var(--transition-fast),
       transform var(--transition-fast);
 
-    .link_preview_site_name {
+    .tlp__site {
       display: block;
       font-size: var(--font-size-xs);
       font-weight: 600;
@@ -120,7 +118,7 @@
       font-family: inherit;
     }
 
-    .link_preview_title {
+    .tlp__title {
       display: block;
       font-size: clamp(var(--font-size-base), 0.95rem + 0.15vw, var(--font-size-lg));
       font-weight: 600;
@@ -129,7 +127,7 @@
       font-family: inherit;
     }
 
-    .link_preview_description {
+    .tlp__desc {
       display: block;
       font-size: var(--font-size-sm);
       line-height: var(--line-height-base);
@@ -149,26 +147,26 @@
     outline-offset: 2px;
   }
 
-  .tlp:has(.tlp-thumb) {
+  .tlp:has(.tlp__thumb) {
     padding: 0;
   }
 
-  .tlp:has(.tlp-thumb) .tlp-thumb {
+  .tlp:has(.tlp__thumb) .tlp__thumb {
     display: block;
     margin: 0;
   }
 
-  .tlp:has(.tlp-thumb) .link_preview_site_name,
-  .tlp:has(.tlp-thumb) .link_preview_title,
-  .tlp:has(.tlp-thumb) .link_preview_description {
+  .tlp:has(.tlp__thumb) .tlp__site,
+  .tlp:has(.tlp__thumb) .tlp__title,
+  .tlp:has(.tlp__thumb) .tlp__desc {
     padding-inline: var(--space-md);
   }
 
-  .tlp:has(.tlp-thumb) .link_preview_site_name {
+  .tlp:has(.tlp__thumb) .tlp__site {
     margin-top: var(--space-sm);
   }
 
-  .tlp:has(.tlp-thumb) .link_preview_description {
+  .tlp:has(.tlp__thumb) .tlp__desc {
     margin-bottom: var(--space-md);
   }
 
@@ -306,12 +304,13 @@
 @media (min-width: 64rem) { .image-list-container { column-count: 3; } }
 @media (min-width: 90rem) { .image-list-container { column-count: 4; } }
 
-.image-list-container > .image-preview-link,
-.image-list-container > * {
-  display: block;
-  break-inside: avoid;
-  margin-bottom: var(--space-sm);
-}
+  .image-list-container > .image-preview-link,
+  .image-list-container > * {
+    display: inline-block;
+    break-inside: avoid;
+    margin-bottom: var(--space-sm);
+    aspect-ratio: auto;
+  }
 
 /* hero-first on odd counts (your markup already adds .image-list-odd) */
 .image-list-container.image-list-odd > :first-child {
@@ -347,14 +346,21 @@
   box-shadow: 0 0 0 3px var(--accent-azure-45);
 }
 
-/* Post images: natural size; shrink to fit; never upscale */
-:where(.content) :where(.image-preview-link img, .image-list-container img, .attachment-box .image-box img):not(.tlp-thumb) {
-  inline-size: auto !important;
-  max-inline-size: 100% !important;
-  block-size: auto !important;
-  height: auto !important;
-  display: block;
-}
+  /* Post images: natural size; shrink to fit; never upscale */
+  :where(.content)
+  :where(.image-preview-link img, .image-list-container img, .attachment-box .image-box img):not(.tlp__thumb) {
+    inline-size: auto !important;
+    max-inline-size: 100% !important;
+    block-size: auto !important;
+    height: auto !important;
+    object-fit: contain !important;
+    display: block;
+  }
+
+  .content .image-list-container > .image-preview-link,
+  .content .attachment-box .image-box {
+    aspect-ratio: auto !important;
+  }
 
 @media (prefers-reduced-motion: reduce) {
   .content .image-list-container > *,
@@ -362,66 +368,41 @@
     transition: none !important;
   }
 }
-/* BEGIN direct: telegram preview fix v5 (grid-areas, image spans all rows) */
+
+/* Telegram Link Preview root: simple two-column grid */
 .tlp {
-  max-width: 100% !important;
-  box-sizing: border-box !important;
-  contain: content !important;
-}
-
-.tlp:has(.tlp-thumb) {
-  display: grid !important;
-  grid-template-columns: var(--link-preview-thumb, 6.5rem) minmax(0, 1fr) !important;
-  grid-template-rows: auto auto auto !important;
+  display: grid;
+  grid-template-columns: auto 1fr;
   grid-template-areas:
-    "img site"
-    "img title"
-    "img desc" !important;
-  gap: 0 !important;
-  padding: 0 !important;
-  align-items: start !important;
+    "thumb title"
+    "thumb desc"
+    "thumb site";
+  gap: var(--space-sm);
+  align-items: start;
 }
 
-.tlp:has(.tlp-thumb) .tlp-thumb {
-  grid-area: img !important;
-  place-self: stretch start !important;
-  margin: 0 !important;
-}
+/* Place sub-elements */
+.tlp .tlp__title { grid-area: title; }
+.tlp .tlp__desc  { grid-area: desc;  }
+.tlp .tlp__site  { grid-area: site;  opacity: .85; }
 
-.tlp:has(.tlp-thumb) .link_preview_site_name {
-  grid-area: site !important;
-  padding-inline: var(--space-md) !important;
-  min-width: 0 !important;
-}
+/* Thumbnail: square cell at the left; fill both axes; warp allowed; no crop */
+.tlp .tlp__thumb {
+  grid-area: thumb;
+  /* cell size (tunable) */
+  --tlp-thumb: 96px;
+  inline-size: var(--tlp-thumb);
+  block-size: var(--tlp-thumb);
 
-.tlp:has(.tlp-thumb) .link_preview_title {
-  grid-area: title !important;
-  padding-inline: var(--space-md) !important;
-  min-width: 0 !important;
-}
+  /* ensure the rendered content (img/div/bg) fills the cell */
+  width: 100%;
+  height: 100%;
+  object-fit: fill;               /* OK to warp to avoid cropping */
+  aspect-ratio: 1 / 1;
 
-.tlp:has(.tlp-thumb) .link_preview_description {
-  grid-area: desc !important;
-  padding-inline: var(--space-md) !important;
-  min-width: 0 !important;
+  /* if thumbnail is a background-image element */
+  background-size: 100% 100%;
+  background-position: 50% 50%;
+  background-repeat: no-repeat;
 }
-/* END direct: telegram preview fix v5 */
-/* BEGIN direct: telegram preview tweak v6 (wider left column) */
-:root {
-  --link-preview-thumb: 8rem;
-}
-@media (max-width: var(--bp-xs)) {
-  :root { --link-preview-thumb: 6.25rem; }
-}
-/* END direct: telegram preview tweak v6 */
-/* Telegram Link Preview (scoped): thumbnail fills its cell; warp is OK; no crop */
-.tlp .tlp-thumb {
-  inline-size: 100% !important;
-  block-size: 100% !important;
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: fill !important;        /* stretch both directions; never crop */
-  background-size: 100% 100% !important;  /* if the element uses background-image */
-  background-position: 50% 50% !important;
-  background-repeat: no-repeat !important;
-}
+  
