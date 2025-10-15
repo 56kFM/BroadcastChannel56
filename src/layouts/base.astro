@@ -79,6 +79,16 @@ const hasHeader = Astro.slots.has('header')
     <SEO titleTemplate="%s" titleDefault={channelTitle} {...seoParams} />
     <slot name="head" />
     <Fragment set:html={HEADER_INJECT} />
+    <style>
+      /* PR2: scope-only emoji normalization */
+      .emoji {
+        font-style: normal !important;
+        text-shadow: none !important;
+        filter: none !important;
+        -webkit-text-stroke: 0 !important;
+        line-height: 1em;
+      }
+    </style>
   </head>
 
   <body>
