@@ -265,3 +265,8 @@
   object-fit: contain !important;
   display: block;
 }
+
+/* safety: post images must use natural aspect even if a CLS rule slips in */
+.content .image-preview-wrap img {
+  aspect-ratio: auto !important;
+}
