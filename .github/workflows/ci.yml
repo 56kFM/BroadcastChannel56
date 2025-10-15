@@ -42,3 +42,71 @@ jobs:
           OFFLINE_BUILD: 'true'
           COLUMNS: '80'
         continue-on-error: true
+
+  lint:
+    runs-on: ubuntu-latest
+    env:
+      OFFLINE_BUILD: 'true'
+      COLUMNS: '80'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - run: pnpm i --prefer-offline --frozen-lockfile=false
+      - run: pnpm run lint || true
+
+  typecheck:
+    runs-on: ubuntu-latest
+    env:
+      OFFLINE_BUILD: 'true'
+      COLUMNS: '80'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - run: pnpm i --prefer-offline --frozen-lockfile=false
+      - run: pnpm run typecheck || true
+
+  test:
+    runs-on: ubuntu-latest
+    env:
+      OFFLINE_BUILD: 'true'
+      COLUMNS: '80'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - run: pnpm i --prefer-offline --frozen-lockfile=false
+      - run: COLUMNS=80 pnpm run test:unit || true
+
+  canaries:
+    runs-on: ubuntu-latest
+    env:
+      OFFLINE_BUILD: 'true'
+      COLUMNS: '80'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - run: pnpm i --prefer-offline --frozen-lockfile=false
+      - run: pnpm run test:canary || true
