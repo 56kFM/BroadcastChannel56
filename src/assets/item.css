@@ -366,12 +366,9 @@
   inline-size: auto;          /* natural width */
   max-inline-size: 100%;      /* shrink to fit the column if needed */
   block-size: auto;           /* natural height */
-  height: auto;               /* keep for compat */
+  height: auto;               /* compat */
   display: block;
   border-radius: var(--radius-md);
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  box-shadow: var(--shadow-sm);
-  transition: transform var(--transition-base);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -402,10 +399,10 @@
 
 .tgme_widget_message_link_preview:has(.link_preview_image) .link_preview_image {
   grid-area: img !important;
-  place-self: stretch stretch !important;
+  place-self: stretch start !important;
   width: 100% !important;
-  height: 100% !important;
-  object-fit: fill !important; /* warp to fill both ways */
+  height: auto !important;        /* keep aspect */
+  object-fit: cover !important;   /* fill area without distortion */
   margin: 0 !important;
 }
 
