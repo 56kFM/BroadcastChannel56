@@ -26,6 +26,9 @@ jobs:
           # CI_OFFLINE_START
           OFFLINE_BUILD: 'true'
           # CI_OFFLINE_END
+      - name: Repo doctor
+        run: pnpm run doctor
+        continue-on-error: true
       - name: Canaries
         run: pnpm run test:canary
         env:
