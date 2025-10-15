@@ -434,3 +434,13 @@
   :root { --link-preview-thumb: 6.25rem; }
 }
 /* END direct: telegram preview tweak v6 */
+/* Prevent upscaling/stretching inside media gallery & hero */
+.content .image-list-container .image-preview-link img,
+.content .image-list-container img,
+.content .media-hero .image-preview-link img,
+.content .media-hero img {
+  width: auto !important;     /* don’t force 100% width */
+  max-width: 100% !important; /* still shrink to fit the column */
+  height: auto !important;    /* preserve aspect ratio */
+  display: block;
+}
