@@ -22,8 +22,6 @@ jobs:
       - run: pnpm run check
       - run: pnpm run typecheck
       - run: pnpm run build
-        env:
-          OFFLINE_BUILD: 'true'
+        env: { OFFLINE_BUILD: 'true' }
       - run: pnpm run test:canary
-        env:
-          OFFLINE_BUILD: 'true'
+        env: { OFFLINE_BUILD: 'true' }

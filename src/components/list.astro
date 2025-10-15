@@ -15,8 +15,9 @@ const {
 
 const posts = Array.isArray(channel?.posts) ? channel.posts : []
 // posts are in chronological order (oldest -> newest)
-const beforeCursor = posts[0]?.id // step to older items
-const afterCursor = posts.at(-1)?.id // step to newer items
+const currentId = posts.at(-1)?.id ?? posts[0]?.id
+const beforeCursor = isItem ? currentId : posts[0]?.id
+const afterCursor = isItem ? currentId : posts.at(-1)?.id
 
 const normalizedBasePath = paginationBasePath ? `${paginationBasePath.replace(/^\/+/u, '').replace(/\/+$/u, '')}/` : ''
 const encodeCursor = (cursor: unknown) => encodeURIComponent(String(cursor))

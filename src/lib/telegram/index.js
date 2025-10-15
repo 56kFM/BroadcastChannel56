@@ -784,6 +784,21 @@ export async function getChannelInfo(
   } = options ?? {}
   const embedsEnabled = (getEnv(import.meta.env, Astro, 'ENABLE_EMBEDS') ?? 'true') !== 'false'
   const offline = (getEnv(import.meta.env, Astro, 'OFFLINE_BUILD') ?? 'false') === 'true'
+  if (offline) {
+    return {
+      posts: [],
+      title: undefined,
+      description: undefined,
+      descriptionHTML: undefined,
+      avatar: undefined,
+      availableTags: [],
+      tagIndex: {},
+      selectedTag: undefined,
+      embedsEnabled,
+      hasNewer: false,
+      hasOlder: false,
+    }
+  }
   const cacheKey = JSON.stringify({ before, after, q, type, id, tag, limit, navigateFrom, direction, enableEmbeds: embedsEnabled })
   const cachedResult = cache.get(cacheKey)
 
@@ -817,40 +832,21 @@ export async function getChannelInfo(
       query: {
         before: before || undefined,
         after: after || undefined,
-        q: searchQuery,
+        q: searchQuery || undefined,
       },
     })
     const $ = load(html)
     const staticProxy = getEnv(import.meta.env, Astro, 'STATIC_PROXY_ORIGIN')
     const baseUrl = getEnv(import.meta.env, Astro, 'SITE_URL') || Astro.locals.SITE_URL || '/'
     const items = $('.tgme_widget_message_wrap').toArray()
-    const pagePosts = items
-      .map((item, index) => getPost($, item, { channel, staticProxy, index, baseUrl, enableEmbeds: embedsEnabled }))
-      ?.filter(Boolean)
-      ?.reverse()
-      ?.filter(post => ['text'].includes(post.type) && post.id && post.content) ?? []
-    return { $, posts: pagePosts }
-  }
-
-  if (offline) {
-    const channelInfo = {
-      posts: [],
-      title: undefined,
-      description: undefined,
-      descriptionHTML: undefined,
-      avatar: undefined,
-      availableTags: [],
-      tagIndex: {},
-      selectedTag: undefined,
-      embedsEnabled,
-      hasNewer: false,
-      hasOlder: false,
-    }
-    return channelInfo
+    const posts = items.map((item, index) =>
+      getPost($, item, { channel, staticProxy, index, baseUrl, enableEmbeds: embedsEnabled }),
+    )?.filter(Boolean)?.reverse()?.filter(p => ['text'].includes(p.type) && p.id && p.content) ?? []
+    return { $, posts }
   }
 
   if (navigateFrom && (direction === 'newer' || direction === 'older')) {
-    const searchQuery = type === 'post' ? q : (q || (normalizedTag ? `#${normalizedTag}` : ''))
+    const searchQuery = q || (normalizedTag ? `#${normalizedTag}` : undefined)
     const winA = direction === 'newer'
       ? await fetchPage({ after: navigateFrom, searchQuery })
       : await fetchPage({ before: navigateFrom, searchQuery })
@@ -862,8 +858,8 @@ export async function getChannelInfo(
     }
     const merged = Array.from(byId.values()).sort((a, b) => Number(a.id) - Number(b.id))
     const fromNum = Number(navigateFrom)
-    const nextNewer = merged.find(p => Number(p.id) > fromNum)
-    const nextOlder = [...merged].reverse().find(p => Number(p.id) < fromNum)
+    const nextNewer = merged.find(p => Number(p.id) > fromNum) || null
+    const nextOlder = [...merged].reverse().find(p => Number(p.id) < fromNum) || null
     const hasNewer = merged.length ? (Number(merged[merged.length - 1].id) > fromNum) : false
     const hasOlder = merged.length ? (Number(merged[0].id) < fromNum) : false
     const picked = direction === 'newer' ? nextNewer : nextOlder
@@ -923,14 +919,27 @@ export async function getChannelInfo(
   const tagIndex = buildTagIndex(allPosts)
   const availableTags = Object.keys(tagIndex).sort((a, b) => a.localeCompare(b))
   const selectedTag = normalizedTag
-  const posts = selectedTag ? (tagIndex[selectedTag] ?? []) : allPosts
-
-  const limitedPosts = (Number.isInteger(limit) && limit > 0 && Array.isArray(posts))
-    ? posts.slice(0, limit)
-    : posts
+  const posts = allPosts
+  const filteredPosts = selectedTag ? (tagIndex[selectedTag] ?? []) : posts
+  let returnedPosts = filteredPosts
+  if (Number.isInteger(limit) && limit > 0 && Array.isArray(filteredPosts)) {
+    // newest N (end of ascending array)
+    returnedPosts = filteredPosts.slice(-Math.min(limit, filteredPosts.length))
+  }
+  let hasNewer = false
+  let hasOlder = false
+  if (returnedPosts.length === 1 && filteredPosts.length > 0) {
+    const newestId = Number(filteredPosts[filteredPosts.length - 1].id)
+    const pickedId = Number(returnedPosts[0].id)
+    hasNewer = pickedId < newestId
+    hasOlder = filteredPosts.length > 1 && pickedId > Number(filteredPosts[0].id)
+  }
+  else if (filteredPosts.length > returnedPosts.length) {
+    hasOlder = true
+  }
 
   const channelInfo = {
-    posts: limitedPosts,
+    posts: returnedPosts,
     title: $('.tgme_channel_info_header_title')?.text(),
     description: $('.tgme_channel_info_description')?.text(),
     descriptionHTML: modifyHTMLContent($, $('.tgme_channel_info_description'))?.html(),
@@ -939,8 +948,8 @@ export async function getChannelInfo(
     tagIndex,
     selectedTag,
     embedsEnabled,
-    hasNewer: false,
-    hasOlder: false,
+    hasNewer,
+    hasOlder,
   }
 
   cache.set(cacheKey, channelInfo)
