@@ -45,7 +45,7 @@
     "lint-staged": "^15.2.9",
     "postcss-nesting": "^13.0.0",
     "prettier-plugin-astro": "^0.14.1",
-    "simple-git-hooks": "^2.11.1",
+    "simple-git-hooks": "^2.11.0",
     "std-env": "^3.7.0",
     "esbuild": "^0.25.0"
   },
