@@ -10,8 +10,8 @@ if (!cursor) {
 }
 
 const channel = await getChannelInfo(Astro, {
-  before: cursor,
-  limit: 1,
+  navigateFrom: cursor,
+  direction: 'older',
 })
 
 const post = channel?.posts?.[0]

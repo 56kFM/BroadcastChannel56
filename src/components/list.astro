@@ -24,8 +24,9 @@ const beforeHref =
   typeof beforeCursor === 'undefined' ? '' : `${BASE_URL}${normalizedBasePath}before/${encodeCursor(beforeCursor)}`
 const afterHref =
   typeof afterCursor === 'undefined' ? '' : `${BASE_URL}${normalizedBasePath}after/${encodeCursor(afterCursor)}`
-const hasOlderPosts = before && typeof beforeCursor !== 'undefined' && Number.parseInt(beforeCursor, 10) > 1
-const hasNewerPosts = after && typeof afterCursor !== 'undefined'
+const hasOlderPosts =
+  before && (channel?.hasOlder ?? (typeof beforeCursor !== 'undefined' && Number.parseInt(beforeCursor, 10) > 1))
+const hasNewerPosts = after && (channel?.hasNewer ?? typeof afterCursor !== 'undefined')
 /**
  * NOTE: Feed page size is controlled by the repo’s custom paginator.
  * The custom paginator is the source of truth for per-page limits.
