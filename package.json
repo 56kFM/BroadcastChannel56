@@ -18,7 +18,8 @@
     "test:canary": "node tests/canaries/sanitize-canary.mjs",
     "doctor": "node ./scripts/doctor.mjs",
     "receipt": "node ./scripts/receipt.mjs",
-    "snapshot": "node ./scripts/snapshot.mjs"
+    "snapshot": "node ./scripts/snapshot.mjs",
+    "nav:doctor": "node ./scripts/nav-doctor.mjs"
   },
   "dependencies": {
     "@astrojs/rss": "^4.0.12",
