@@ -18,6 +18,15 @@ const exists = (relativePath) => fs.existsSync(path.join(cwd, relativePath))
 
 const expectAll = (source, snippets) => snippets.every((snippet) => source.includes(snippet))
 
+const safeJsonParse = (text) => {
+  try {
+    return JSON.parse(text)
+  }
+  catch {
+    return {}
+  }
+}
+
 const indexAstro = read('src/pages/index.astro')
 const afterAstro = read('src/pages/after/[cursor].astro')
 const beforeAstro = read('src/pages/before/[cursor].astro')
@@ -25,6 +34,8 @@ const listAstro = read('src/components/list.astro')
 const sanitizerTs = read('src/utils/sanitizeHTML.ts')
 const ciWorkflow = read('.github/workflows/ci.yml')
 const lighthouseWorkflow = read('.github/workflows/lighthouse.yml')
+const telegramIndex = read('src/lib/telegram/index.js')
+const packageJson = safeJsonParse(read('package.json'))
 
 const expectedIframeHosts = [
   'www.youtube.com',
@@ -65,6 +76,26 @@ for (const file of walkFiles('src')) {
   }
 }
 
+const devDependencies = packageJson.devDependencies ?? {}
+const packageScripts = packageJson.scripts ?? {}
+const crossEnvInstalled = devDependencies['cross-env'] === '^7.0.3'
+const expectedTestScript = 'cross-env COLUMNS=80 vitest run'
+const expectedTestUnitScript = 'cross-env COLUMNS=80 vitest run tests/unit --reporter=dot'
+const expectedTestWatchScript = 'cross-env COLUMNS=80 vitest --reporter=dot'
+const testScriptsPatched =
+  packageScripts.test === expectedTestScript &&
+  packageScripts['test:unit'] === expectedTestUnitScript &&
+  packageScripts['test:watch'] === expectedTestWatchScript
+
+const hasUnitTestStep = /- name:\s*Unit tests \(non-blocking\)/.test(ciWorkflow)
+const unitTestStepHasEnv = /- name:\s*Unit tests \(non-blocking\)[^]*?env:[^]*?OFFLINE_BUILD:\s*'true'[^]*?COLUMNS:\s*'80'/.test(ciWorkflow)
+const ciEnvColumns = !hasUnitTestStep || unitTestStepHasEnv
+
+const providerTrackerPattern = /(seenCanonical|provider.*Owners|provider.*Canonical)\s*=\s*new\s+(Map|Set)\(/
+const providerGuardPattern = /if\s*\([^)]*(has|get)\([^)]*canonical[^)]*\)[^)]*\)\s*(?:\{[^}]*?\b(?:continue|return)\b[^}]*?\}|(?:continue|return))/
+const inlineSuppressedWhenProviderPresent =
+  providerTrackerPattern.test(telegramIndex) && providerGuardPattern.test(telegramIndex)
+
 const checks = {
   home_limit_1: /getChannelInfo\s*\(\s*Astro\s*,\s*\{[^}]*limit\s*:\s*1/i.test(indexAstro),
   after_route_direction: /navigateFrom\s*:\s*cursor/.test(afterAstro) && /direction\s*:\s*['"]newer['"]/i.test(afterAstro),
@@ -75,6 +106,10 @@ const checks = {
   sanitizer_emoji_wrapper: /<span class="emoji">/.test(sanitizerTs) && /textFilter/.test(sanitizerTs),
   ci_offline_build: /OFFLINE_BUILD:\s*'true'/.test(ciWorkflow),
   lhci_offline_build: /OFFLINE_BUILD:\s*'true'/.test(lighthouseWorkflow),
+  cross_env_installed: crossEnvInstalled,
+  test_scripts_patched: testScriptsPatched,
+  ci_env_columns: ciEnvColumns,
+  inline_suppressed_when_provider_present: inlineSuppressedWhenProviderPresent,
   jsonld_single_post:
     jsonLdFiles.length === 1 &&
     jsonLdFiles[0] === 'src/components/item.astro' &&
@@ -85,9 +120,17 @@ const checks = {
 
 const ok = Object.values(checks).every(Boolean)
 
-const payload = { ok, checks }
+const formatBool = (value) => (value ? 'true' : 'false')
 
-const jsonOutput = JSON.stringify(payload, null, 2)
-console.log(jsonOutput)
+const receiptLines = [
+  `receipt: cross_env_installed ${formatBool(crossEnvInstalled)}`,
+  `receipt: test_scripts_patched ${formatBool(testScriptsPatched)}`,
+  `receipt: ci_env_columns ${formatBool(ciEnvColumns)}`,
+  `receipt: inline_suppressed_when_provider_present ${formatBool(inlineSuppressedWhenProviderPresent)}`,
+]
+
+for (const line of receiptLines) {
+  console.log(line)
+}
 
 process.exit(ok ? 0 : 1)
