@@ -167,32 +167,3 @@ audio {
   outline-offset: 2px;
   box-shadow: none;
 }
-
-/* Hero image: natural size, no upscaling, full available width if larger */
-.media-hero .image-preview-link { display: block; }
-.media-hero .image-preview-link img {
-  width: auto;
-  max-width: 100%;
-  height: auto;
-  display: block;
-}
-
-/* Masonry column flow (JS-free). First image sits above in .media-hero */
-.image-list-container.media-masonry {
-  column-count: 1;
-  column-gap: 0.5rem;
-}
-@media (min-width: 40rem) {
-  .image-list-container.media-masonry { column-count: 2; }
-}
-.image-list-container.media-masonry .image-preview-link {
-  display: block;
-  break-inside: avoid;
-  margin-bottom: 0.5rem;
-}
-.image-list-container.media-masonry .image-preview-link img {
-  width: auto;
-  max-width: 100%;
-  height: auto;
-  display: block;
-}
