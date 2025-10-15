@@ -1,10 +1,16 @@
+/// <reference path="../.astro/types.d.ts" />
 /// <reference types="astro/client" />
-
 declare namespace App {
   interface Locals {
-    BASE_URL: string;
-    SITE_URL: string;
-    SITE_ORIGIN: string;
-    RSS_URL: string;
+    SITE_URL: string
+    RSS_URL: string
+    SITE_ORIGIN: string
+    BASE_URL: string
+    runtime?: { env?: Record<string, string | undefined> }
   }
+}
+
+declare module '*.svg?raw' {
+  const content: string
+  export default content
 }
