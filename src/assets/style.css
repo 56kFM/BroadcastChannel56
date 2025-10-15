@@ -357,7 +357,7 @@ a.site-title:focus-visible {
   box-shadow: var(--shadow-sm);
 }
 
-/* Scope full-width behavior to Telegram link preview thumbnails only */
+/* Telegram link preview thumbnails only */
 .tgme_widget_message_link_preview .image {
   inline-size: 100%;
   block-size: auto;
