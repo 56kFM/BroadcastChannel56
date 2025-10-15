@@ -2,6 +2,7 @@
 import '../assets/normalize.css'
 import '../assets/style.css'
 import '../assets/global.css'
+import '../styles/cls-guards.css'
 import { SEO } from 'astro-seo'
 import { getEnv } from '../lib/env'
 import backToTopIcon from '../assets/back-to-top.svg'
@@ -75,15 +76,8 @@ const hasHeader = Astro.slots.has('header')
       }
     </style>
     <SEO titleTemplate="%s" titleDefault={channelTitle} {...seoParams} />
+    <slot name="head" />
     <Fragment set:html={HEADER_INJECT} />
-    <!-- Preconnect to common embed hosts -->
-    <link rel="preconnect" href="https://www.youtube-nocookie.com" crossorigin />
-    <link rel="preconnect" href="https://www.youtube.com" crossorigin />
-    <link rel="preconnect" href="https://player.vimeo.com" crossorigin />
-    <link rel="preconnect" href="https://w.soundcloud.com" crossorigin />
-    <link rel="preconnect" href="https://open.spotify.com" crossorigin />
-    <link rel="preconnect" href="https://embed.music.apple.com" crossorigin />
-    <link rel="preconnect" href="https://bandcamp.com" crossorigin />
   </head>
 
   <body>
