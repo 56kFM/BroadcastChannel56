@@ -363,11 +363,12 @@
 }
 
 .image-preview-link img {
+  inline-size: auto;          /* natural width */
+  max-inline-size: 100%;      /* shrink to fit the column if needed */
+  block-size: auto;           /* natural height */
+  height: auto;               /* keep for compat */
   display: block;
-  width: auto;
-  max-width: 100%;
-  height: auto;
-  border-radius: 0;
+  border-radius: var(--radius-md);
   border: 1px solid rgba(148, 163, 184, 0.2);
   box-shadow: var(--shadow-sm);
   transition: transform var(--transition-base);
