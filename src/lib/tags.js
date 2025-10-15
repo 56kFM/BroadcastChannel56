@@ -33,3 +33,7 @@ export function extractTagsFromText(text = '') {
 
   return Array.from(uniqueTags)
 }
+
+export function tagIndex(tag = '') {
+  return `/tags/${encodeURIComponent(tag)}/`
+}
