@@ -326,3 +326,47 @@
   display: block;
 }
 
+/* === TLP ONLY — collapse left column when no usable image (CSS-only) === */
+
+/* A) Hide truly empty thumb nodes (no children). This catches the common "blank" case. */
+.tgme_widget_message_link_preview .link_preview_image:empty,
+.tgme_widget_message_link_preview .link_preview_photo:empty,
+.tgme_widget_message_link_preview .image:empty {
+  display: none !important;
+}
+
+/* B) If there is NO <img> and NO inline background-image on the thumb container,
+      collapse the grid to a single text column (no blank gap). */
+.tgme_widget_message_link_preview:not(
+  :has(.link_preview_image img, .link_preview_photo img, .image img,
+       .link_preview_image[style*="background-image"],
+       .link_preview_photo[style*="background-image"],
+       .image[style*="background-image"])
+) {
+  grid-template-columns: 1fr !important;
+  grid-template-rows: auto auto;
+  grid-template-areas:
+    "title"
+    "desc";
+}
+
+.tgme_widget_message_link_preview:not(
+  :has(.link_preview_image img, .link_preview_photo img, .image img,
+       .link_preview_image[style*="background-image"],
+       .link_preview_photo[style*="background-image"],
+       .image[style*="background-image"])
+) .link_preview_image,
+.tgme_widget_message_link_preview:not(
+  :has(.link_preview_image img, .link_preview_photo img, .image img,
+       .link_preview_image[style*="background-image"],
+       .link_preview_photo[style*="background-image"],
+       .image[style*="background-image"])
+) .link_preview_photo,
+.tgme_widget_message_link_preview:not(
+  :has(.link_preview_image img, .link_preview_photo img, .image img,
+       .link_preview_image[style*="background-image"],
+       .link_preview_photo[style*="background-image"],
+       .image[style*="background-image"])
+) .image {
+  display: none !important;
+}
