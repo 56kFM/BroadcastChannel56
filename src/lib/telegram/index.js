@@ -731,7 +731,7 @@ function getPost($, item, { channel, staticProxy, index = 0, baseUrl = '/', enab
       $.html($(item).find('.tgme_widget_message_document_wrap')),
       $.html($(item).find('.tgme_widget_message_video_player.not_supported')),
       $.html($(item).find('.tgme_widget_message_location_wrap')),
-    ].filter(Boolean).join('').replace(/(url\(["'])((https?:)?\/\/)/g, (match, p1, p2, _p3) => {
+    ].filter(Boolean).join('').replace(/(url\(["'])((https?:)?\/\/)/g, (_match, p1, p2, _p3) => {
       if (p2 === '//') {
         p2 = 'https://'
       }
