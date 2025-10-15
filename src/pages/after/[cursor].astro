@@ -12,6 +12,10 @@ if (!cursor) {
 const channel = await getChannelInfo(Astro, {
   after: cursor,
 })
+const singleChannel = {
+  ...channel,
+  posts: Array.isArray(channel?.posts) ? channel.posts.slice(0, 1) : [],
+}
 
 // Guard: never show an empty page
 if (!Array.isArray(channel?.posts) || channel.posts.length === 0) {
@@ -23,4 +27,4 @@ channel.seo = {
 }
 ---
 
-<List channel={channel} paginationGap={true} />
+<List channel={singleChannel} isItem={true} paginationGap={true} />
