@@ -317,3 +317,40 @@
 }
 
 /* Important: DO NOT style generic .image or global img here. Keep it scoped. */
+/* === TLP THUMBNAIL ONLY — show entire image and warp to fill its column (no crop) === */
+/* Strict scope: Telegram link preview only. Do not affect any other images. */
+
+.tgme_widget_message_link_preview .link_preview_image,
+.tgme_widget_message_link_preview .link_preview_photo,
+.tgme_widget_message_link_preview .image {
+  /* This is the left thumbnail column inside the Telegram preview card */
+  grid-area: thumb;                 /* relies on existing preview grid, if any */
+  --tlp-thumb-w: var(--tlp-thumb-w, 96px);
+  inline-size: var(--tlp-thumb-w);  /* width of the left column */
+  block-size: 100%;                 /* fill the card height */
+  min-inline-size: 0;
+  min-block-size: 0;
+
+  /* If Telegram renders a background-image here, fill both axes without cropping */
+  background-size: 100% 100% !important;
+  background-position: 50% 50%;
+  background-repeat: no-repeat;
+
+  /* If an <img> is inside, let it stretch to the box */
+  display: grid;
+  place-items: stretch;
+}
+
+.tgme_widget_message_link_preview .link_preview_image > img,
+.tgme_widget_message_link_preview .link_preview_photo > img,
+.tgme_widget_message_link_preview .image > img,
+.tgme_widget_message_link_preview .link_preview_image picture img {
+  inline-size: 100% !important;
+  block-size: 100% !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: fill !important;      /* show whole image, warp to fill (no crop) */
+  display: block;
+}
+
+/* NOTE: Do not add any non-TLP selectors in this task. */
