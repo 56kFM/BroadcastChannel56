@@ -39,24 +39,30 @@ const allowedAttributes: Record<string, string[]> = {
   ],
 }
 
-const EMOJI_RE = /\p{Extended_Pictographic}(?:\uFE0F|\uFE0E|\u200D\p{Extended_Pictographic})*/gu
-
 export const sanitizeHTML = (dirty: string): string => {
   return sanitizeHtml(dirty, {
+    /* SANITIZER_ALLOWLIST_START */
+    // Ensure span[class] is allowed for emoji wrapper
     allowedTags,
     allowedAttributes,
+    /* SANITIZER_ALLOWLIST_END */
 
     allowRelative: true,
     allowProtocolRelative: true,
     allowedSchemes: ['http', 'https', 'data'],
 
-    textFilter: (text) => {
-      try {
-        return text.replace(EMOJI_RE, (m) => `<span class="emoji">${m}</span>`)
-      } catch {
-        return text
+    /* SANITIZER_TEXTFILTER_START */
+    // Wrap Unicode emoji runs so style tweaks can target only emojis
+    ...(() => {
+      const EMOJI_RE = /\p{Extended_Pictographic}(?:\uFE0F|\uFE0E|\u200D\p{Extended_Pictographic})*/gu
+      return {
+        textFilter: (text: string) => {
+          try { return text.replace(EMOJI_RE, (m) => `<span class="emoji">${m}</span>`) }
+          catch { return text }
+        },
       }
-    },
+    })(),
+    /* SANITIZER_TEXTFILTER_END */
 
     transformTags: {
       a: (tagName: any, attribs: any) => {

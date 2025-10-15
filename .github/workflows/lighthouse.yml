@@ -22,7 +22,9 @@ jobs:
       - run: pnpm install
       - run: pnpm run build
         env:
+          # CI_OFFLINE_START
           OFFLINE_BUILD: 'true'
+          # CI_OFFLINE_END
 
       # Run Lighthouse CI against the built dist (no preview server required)
       - name: Run Lighthouse CI

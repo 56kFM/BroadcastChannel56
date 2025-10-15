@@ -13,21 +13,26 @@ const {
   paginationBasePath = '',
 } = Astro.props
 
+/* PAGINATION_START */
 const posts = Array.isArray(channel?.posts) ? channel.posts : []
-// posts are in chronological order (oldest -> newest)
+const normalizedBasePath = paginationBasePath ? `${paginationBasePath.replace(/^\/+/u, '').replace(/\/+$/u, '')}/` : ''
+const encodeCursor = (cursor: unknown) => encodeURIComponent(String(cursor))
+
+// Single-post flows (home/after/before) compute cursors from the current post.
 const currentId = posts.at(-1)?.id ?? posts[0]?.id
 const beforeCursor = isItem ? currentId : posts[0]?.id
 const afterCursor = isItem ? currentId : posts.at(-1)?.id
 
-const normalizedBasePath = paginationBasePath ? `${paginationBasePath.replace(/^\/+/u, '').replace(/\/+$/u, '')}/` : ''
-const encodeCursor = (cursor: unknown) => encodeURIComponent(String(cursor))
 const beforeHref =
   typeof beforeCursor === 'undefined' ? '' : `${BASE_URL}${normalizedBasePath}before/${encodeCursor(beforeCursor)}`
 const afterHref =
   typeof afterCursor === 'undefined' ? '' : `${BASE_URL}${normalizedBasePath}after/${encodeCursor(afterCursor)}`
+
+// Prefer server-provided flags; fall back to heuristic
 const hasOlderPosts =
   before && (channel?.hasOlder ?? (typeof beforeCursor !== 'undefined' && Number.parseInt(beforeCursor, 10) > 1))
 const hasNewerPosts = after && (channel?.hasNewer ?? typeof afterCursor !== 'undefined')
+/* PAGINATION_END */
 /**
  * NOTE: Feed page size is controlled by the repo’s custom paginator.
  * The custom paginator is the source of truth for per-page limits.

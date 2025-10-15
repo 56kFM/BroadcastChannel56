@@ -2,7 +2,9 @@
 import List from '../components/list.astro'
 import { getChannelInfo } from '../lib/telegram'
 
+/* HOME_FETCH_START */
 const channel = await getChannelInfo(Astro, { limit: 1 })
+/* HOME_FETCH_END */
 const post = channel?.posts?.[0]
 const KIND_HOSTS: Record<string, string[]> = {
   youtube: ['www.youtube-nocookie.com', 'www.youtube.com', 'youtu.be'],
