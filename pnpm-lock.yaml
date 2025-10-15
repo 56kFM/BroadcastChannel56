@@ -66,6 +66,9 @@ importers:
       cssnano:
         specifier: ^7.0.5
         version: 7.0.5(postcss@8.5.6)
+      esbuild:
+        specifier: ^0.25.0
+        version: 0.25.10
       eslint:
         specifier: 9.5.0
         version: 9.5.0
