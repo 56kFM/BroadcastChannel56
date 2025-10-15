@@ -651,16 +651,13 @@ function modifyHTMLContent($, content, { index, baseUrl } = {}) {
   const normalizedBaseUrl = ensureBaseUrl(baseUrl)
   const $content = $(content)
 
-  // Namespace every Telegram Link Preview element so CSS cannot leak to normal post images
+  // Namespace Telegram Link Preview so CSS can't leak to normal post images
   const $previews = $content.find('.tgme_widget_message_link_preview')
   $previews.each((_, node) => {
     const $pv = $(node)
-
-    // Root namespace
     if (!$pv.hasClass('tlp'))
-      $pv.addClass('tlp')
+      $pv.addClass('tlp') // root
 
-    // Sub-elements (additive classes)
     const $title = $pv.find('.link_preview_title').first()
     if ($title.length && !$title.hasClass('tlp__title'))
       $title.addClass('tlp__title')
@@ -673,8 +670,8 @@ function modifyHTMLContent($, content, { index, baseUrl } = {}) {
     if ($site.length && !$site.hasClass('tlp__site'))
       $site.addClass('tlp__site')
 
-    // Thumbnail target (Telegram may use .link_preview_image, .image, or <img>)
-    const $thumb = $pv.find('.link_preview_image, .image, img').first()
+    // Thumbnail candidate(s)
+    const $thumb = $pv.find('.link_preview_image, .image, .link_preview_photo, img').first()
     if ($thumb.length && !$thumb.hasClass('tlp__thumb'))
       $thumb.addClass('tlp__thumb')
   })

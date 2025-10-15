@@ -93,83 +93,6 @@
     }
   }
 
-  .tlp {
-    margin-top: var(--space-sm);
-    border-radius: 0;
-    overflow: hidden;
-    background: none;
-    border: 1px solid currentColor;
-    box-shadow: none;
-    padding: var(--space-sm) var(--space-md);
-    color: inherit;
-    font-family: inherit;
-    text-decoration: none;
-    transition:
-      border-color var(--transition-fast),
-      transform var(--transition-fast);
-
-    .tlp__site {
-      display: block;
-      font-size: var(--font-size-xs);
-      font-weight: 600;
-      letter-spacing: 0.02em;
-      color: inherit;
-      text-transform: none;
-      font-family: inherit;
-    }
-
-    .tlp__title {
-      display: block;
-      font-size: clamp(var(--font-size-base), 0.95rem + 0.15vw, var(--font-size-lg));
-      font-weight: 600;
-      line-height: var(--line-height-snug);
-      color: inherit;
-      font-family: inherit;
-    }
-
-    .tlp__desc {
-      display: block;
-      font-size: var(--font-size-sm);
-      line-height: var(--line-height-base);
-      color: inherit;
-      font-family: inherit;
-    }
-  
-  max-width: 100% !important;
-  box-sizing: border-box !important;
-  contain: content !important;
-}
-
-  .tlp:focus-visible {
-    border-color: currentColor;
-    transform: translateY(-1px);
-    outline: 2px solid rgba(59, 130, 246, 0.55);
-    outline-offset: 2px;
-  }
-
-  .tlp:has(.tlp__thumb) {
-    padding: 0;
-  }
-
-  .tlp:has(.tlp__thumb) .tlp__thumb {
-    display: block;
-    margin: 0;
-  }
-
-  .tlp:has(.tlp__thumb) .tlp__site,
-  .tlp:has(.tlp__thumb) .tlp__title,
-  .tlp:has(.tlp__thumb) .tlp__desc {
-    padding-inline: var(--space-md);
-  }
-
-  .tlp:has(.tlp__thumb) .tlp__site {
-    margin-top: var(--space-sm);
-  }
-
-  .tlp:has(.tlp__thumb) .tlp__desc {
-    margin-bottom: var(--space-md);
-  }
-
   .tgme_widget_message_video,
   .tgme_widget_message_roundvideo {
     display: block;
@@ -296,7 +219,7 @@
   }
 }
 
-/* Use columns-based masonry; disable conflicting grid here */
+/* Columns-based masonry only */
 .content .image-list-container { display: block; }
 
 .image-list-container { column-count: 1; column-gap: var(--space-sm); }
@@ -304,15 +227,15 @@
 @media (min-width: 64rem) { .image-list-container { column-count: 3; } }
 @media (min-width: 90rem) { .image-list-container { column-count: 4; } }
 
-  .image-list-container > .image-preview-link,
-  .image-list-container > * {
-    display: inline-block;
-    break-inside: avoid;
-    margin-bottom: var(--space-sm);
-    aspect-ratio: auto;
-  }
+.image-list-container > .image-preview-link,
+.image-list-container > * {
+  display: inline-block;
+  break-inside: avoid;
+  margin-bottom: var(--space-sm);
+  aspect-ratio: auto;
+}
 
-/* hero-first on odd counts (your markup already adds .image-list-odd) */
+/* hero-first on odd counts */
 .image-list-container.image-list-odd > :first-child {
   column-span: all;
   margin-bottom: var(--space-sm);
@@ -346,21 +269,23 @@
   box-shadow: 0 0 0 3px var(--accent-azure-45);
 }
 
-  /* Post images: natural size; shrink to fit; never upscale */
-  :where(.content)
-  :where(.image-preview-link img, .image-list-container img, .attachment-box .image-box img):not(.tlp__thumb) {
-    inline-size: auto !important;
-    max-inline-size: 100% !important;
-    block-size: auto !important;
-    height: auto !important;
-    object-fit: contain !important;
-    display: block;
-  }
+/* Post images (single + gallery + attachments): natural size; shrink to fit; never upscale */
+:where(.content)
+:where(.image-preview-link img, .image-list-container img, .attachment-box .image-box img):not(.tlp__thumb) {
+  inline-size: auto !important;
+  max-inline-size: 100% !important;
+  block-size: auto !important;
+  height: auto !important;
+  object-fit: contain !important;
+  display: block;
+}
 
-  .content .image-list-container > .image-preview-link,
-  .content .attachment-box .image-box {
-    aspect-ratio: auto !important;
-  }
+.content .image-list-container > .image-preview-link,
+.content .attachment-box .image-box {
+  aspect-ratio: auto !important;
+  block-size: auto !important;
+  height: auto !important;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .content .image-list-container > *,
@@ -369,7 +294,7 @@
   }
 }
 
-/* Telegram Link Preview root: simple two-column grid */
+/* === Telegram Link Preview (namespaced) === */
 .tlp {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -379,30 +304,71 @@
     "thumb site";
   gap: var(--space-sm);
   align-items: start;
+  margin-top: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid currentColor;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  color: inherit;
+  font-family: inherit;
+  text-decoration: none;
+  transition: border-color var(--transition-fast), transform var(--transition-fast);
+  max-width: 100%;
+  box-sizing: border-box;
+  contain: content;
+  overflow: hidden;
 }
 
-/* Place sub-elements */
-.tlp .tlp__title { grid-area: title; }
-.tlp .tlp__desc  { grid-area: desc;  }
-.tlp .tlp__site  { grid-area: site;  opacity: .85; }
+.tlp:focus-visible {
+  border-color: currentColor;
+  transform: translateY(-1px);
+  outline: 2px solid rgba(59, 130, 246, 0.55);
+  outline-offset: 2px;
+}
 
-/* Thumbnail: square cell at the left; fill both axes; warp allowed; no crop */
+.tlp .tlp__title {
+  grid-area: title;
+  display: block;
+  font-size: clamp(var(--font-size-base), 0.95rem + 0.15vw, var(--font-size-lg));
+  font-weight: 600;
+  line-height: var(--line-height-tight);
+  color: inherit;
+}
+
+.tlp .tlp__desc {
+  grid-area: desc;
+  display: block;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-base);
+  color: inherit;
+}
+
+.tlp .tlp__site {
+  grid-area: site;
+  display: block;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: inherit;
+  opacity: .85;
+}
+
+/* Square thumbnail cell at left; fill both axes; warp allowed; no crop */
 .tlp .tlp__thumb {
   grid-area: thumb;
-  /* cell size (tunable) */
   --tlp-thumb: 96px;
   inline-size: var(--tlp-thumb);
   block-size: var(--tlp-thumb);
-
-  /* ensure the rendered content (img/div/bg) fills the cell */
   width: 100%;
   height: 100%;
-  object-fit: fill;               /* OK to warp to avoid cropping */
+  object-fit: fill;
   aspect-ratio: 1 / 1;
-
-  /* if thumbnail is a background-image element */
   background-size: 100% 100%;
   background-position: 50% 50%;
   background-repeat: no-repeat;
+  display: block;
+  border-radius: 0;
 }
   

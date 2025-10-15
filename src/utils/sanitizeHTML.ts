@@ -47,16 +47,10 @@ const allowedAttributes: Record<string, string[]> = {
   ],
 }
 
-const ensureAttributes = (tag: string, attrs: string[]) => {
-  const next = new Set(allowedAttributes[tag] ?? [])
-  attrs.forEach((attr) => next.add(attr))
-  allowedAttributes[tag] = Array.from(next)
-}
-
-ensureAttributes('div', ['class','id'])
-ensureAttributes('span', ['class','id'])
-ensureAttributes('img', ['class'])
-ensureAttributes('a', ['class'])
+allowedAttributes.div = Array.from(new Set([...(allowedAttributes.div ?? []), 'class','id']))
+allowedAttributes.span = Array.from(new Set([...(allowedAttributes.span ?? []), 'class','id']))
+allowedAttributes.img = Array.from(new Set([...(allowedAttributes.img ?? []), 'class']))
+allowedAttributes.a = Array.from(new Set([...(allowedAttributes.a ?? []), 'class']))
 
 export function sanitizeHTML(html: string, opts?: { baseUrl?: string }) {
   const baseOrigin = safeOrigin(opts?.baseUrl)
