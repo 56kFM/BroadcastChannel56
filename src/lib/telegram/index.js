@@ -4,7 +4,7 @@ import { LRUCache } from 'lru-cache'
 import flourite from 'flourite'
 import prism from '../prism'
 import { getEnv } from '../env'
-import { extractTagsFromText, normalizeTag } from '../tags'
+import { extractTagsFromText, normalizeTag, tagIndex } from '../tags'
 import { canonicalizeUrl } from '../../utils/canonicalizeUrl'
 import { pickAdjacentPost, toNumericId } from './navigation'
 
@@ -570,31 +570,7 @@ function getReply($, item, { channel }) {
   return $.html(reply)
 }
 
-function ensureBaseUrl(baseUrl = '/') {
-  if (typeof baseUrl !== 'string' || baseUrl.length === 0) {
-    return '/'
-  }
-
-  const isAbsoluteUrl = /^(?:[a-zA-Z][\w+.-]*:|\/\/)/u.test(baseUrl)
-
-  if (isAbsoluteUrl) {
-    return baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`
-  }
-
-  if (!baseUrl.startsWith('/')) {
-    baseUrl = `/${baseUrl}`
-  }
-
-  if (!baseUrl.endsWith('/')) {
-    baseUrl = `${baseUrl}/`
-  }
-
-  return baseUrl
-}
-
-function linkifyHashtags($, root, { baseUrl = '/' } = {}) {
-  const normalizedBaseUrl = ensureBaseUrl(baseUrl)
-
+function linkifyHashtags($, root, _opts = {}) {
   root.contents().each((_index, node) => {
     if (node.type === 'text') {
       const text = node.data
@@ -627,7 +603,7 @@ function linkifyHashtags($, root, { baseUrl = '/' } = {}) {
         }
         else {
           replaced = true
-          const tagHref = `${normalizedBaseUrl}tags/${encodeURIComponent(normalizedTag)}/`
+          const tagHref = tagIndex(normalizedTag)
           result += `<a href="${tagHref}" class="hashtag" title="${rawHashtag}">${rawHashtag}</a>`
         }
 
@@ -640,16 +616,14 @@ function linkifyHashtags($, root, { baseUrl = '/' } = {}) {
       }
     }
     else if (node.type === 'tag' && !['a', 'code', 'pre', 'script', 'style'].includes(node.name)) {
-      linkifyHashtags($, $(node), { baseUrl })
+      linkifyHashtags($, $(node))
     }
   })
 
   return root
 }
 
-function modifyHTMLContent($, content, { index, baseUrl } = {}) {
-  const normalizedBaseUrl = ensureBaseUrl(baseUrl)
-
+function modifyHTMLContent($, content, { index } = {}) {
   $(content).find('.emoji')?.removeAttr('style')
   $(content).find('a')?.each((_index, a) => {
     const anchor = $(a)
@@ -662,7 +636,7 @@ function modifyHTMLContent($, content, { index, baseUrl } = {}) {
 
     if (normalizedTag && isTelegramHashtagLink) {
       const hashtag = anchorText?.trim().startsWith('#') ? anchorText.trim() : `#${normalizedTag}`
-      const tagHref = `${normalizedBaseUrl}tags/${encodeURIComponent(normalizedTag)}/`
+      const tagHref = tagIndex(normalizedTag)
       anchor
         ?.attr('href', tagHref)
         ?.attr('title', hashtag)
@@ -688,7 +662,7 @@ function modifyHTMLContent($, content, { index, baseUrl } = {}) {
       console.error(error)
     }
   })
-  return linkifyHashtags($, content, { baseUrl })
+  return linkifyHashtags($, content)
 }
 
 function buildTagIndex(posts) {

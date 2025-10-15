@@ -14,6 +14,52 @@ body {
   min-height: 100%;
 }
 
+:root {
+  /* Tweak to taste; keeps posts compact and aligned with your dark UI */
+  --content-max-inline: 42rem;
+}
+
+/* Cap readable content width and center */
+.item-content-container {
+  max-inline-size: var(--content-max-inline);
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+
+/* Masonry: use CSS multi-columns for natural, JS-free stacking */
+.image-list-container.masonry {
+  column-count: 1;
+  column-gap: 0.5rem;
+}
+
+@media (min-width: 40rem) {
+  .image-list-container.masonry {
+    column-count: 2;
+  }
+}
+
+.image-list-container.masonry .image-preview-link {
+  break-inside: avoid;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+/* Images/iframes/videos respect column width and keep aspect ratio */
+.image-list-container img,
+.item-content-container .content img,
+.item-content-container img {
+  max-inline-size: 100%;
+  height: auto;
+  display: block;
+}
+
+.item-content-container .content video,
+.item-content-container video,
+.item-content-container .content iframe,
+.item-content-container iframe {
+  max-inline-size: 100%;
+}
+
 .site-title {
   view-transition-name: site-title;
   transition:
