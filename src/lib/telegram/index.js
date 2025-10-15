@@ -779,13 +779,16 @@ export async function getChannelInfo(
     id = '',
     tag = '',
     limit,
+    navigateFrom = '',
+    direction = '',
   } = options ?? {}
   const embedsEnabled = (getEnv(import.meta.env, Astro, 'ENABLE_EMBEDS') ?? 'true') !== 'false'
-  const cacheKey = JSON.stringify({ before, after, q, type, id, tag, limit, enableEmbeds: embedsEnabled })
+  const offline = (getEnv(import.meta.env, Astro, 'OFFLINE_BUILD') ?? 'false') === 'true'
+  const cacheKey = JSON.stringify({ before, after, q, type, id, tag, limit, navigateFrom, direction, enableEmbeds: embedsEnabled })
   const cachedResult = cache.get(cacheKey)
 
   if (cachedResult) {
-    console.info('Match Cache', { before, after, q, type, id, tag, limit })
+    console.info('Match Cache', { before, after, q, type, id, tag, limit, navigateFrom, direction })
     return JSON.parse(JSON.stringify(cachedResult))
   }
 
@@ -799,6 +802,87 @@ export async function getChannelInfo(
 
   const normalizedTag = normalizeTag(tag)
   const searchQuery = type === 'post' ? q : (q || (normalizedTag ? `#${normalizedTag}` : ''))
+
+  async function fetchPage({ before, after, searchQuery }) {
+    const { load } = cheerio
+    const url = id ? `https://${host}/${channel}/${id}?embed=1&mode=tme` : `https://${host}/s/${channel}`
+    const headers = Object.fromEntries(Astro.request.headers)
+    Object.keys(headers).forEach((key) => {
+      if (unnessaryHeaders.includes(key)) {
+        delete headers[key]
+      }
+    })
+    const html = await $fetch(url, {
+      headers,
+      query: {
+        before: before || undefined,
+        after: after || undefined,
+        q: searchQuery,
+      },
+    })
+    const $ = load(html)
+    const staticProxy = getEnv(import.meta.env, Astro, 'STATIC_PROXY_ORIGIN')
+    const baseUrl = getEnv(import.meta.env, Astro, 'SITE_URL') || Astro.locals.SITE_URL || '/'
+    const items = $('.tgme_widget_message_wrap').toArray()
+    const pagePosts = items
+      .map((item, index) => getPost($, item, { channel, staticProxy, index, baseUrl, enableEmbeds: embedsEnabled }))
+      ?.filter(Boolean)
+      ?.reverse()
+      ?.filter(post => ['text'].includes(post.type) && post.id && post.content) ?? []
+    return { $, posts: pagePosts }
+  }
+
+  if (offline) {
+    const channelInfo = {
+      posts: [],
+      title: undefined,
+      description: undefined,
+      descriptionHTML: undefined,
+      avatar: undefined,
+      availableTags: [],
+      tagIndex: {},
+      selectedTag: undefined,
+      embedsEnabled,
+      hasNewer: false,
+      hasOlder: false,
+    }
+    return channelInfo
+  }
+
+  if (navigateFrom && (direction === 'newer' || direction === 'older')) {
+    const searchQuery = type === 'post' ? q : (q || (normalizedTag ? `#${normalizedTag}` : ''))
+    const winA = direction === 'newer'
+      ? await fetchPage({ after: navigateFrom, searchQuery })
+      : await fetchPage({ before: navigateFrom, searchQuery })
+    const winB = await fetchPage({ searchQuery })
+    const byId = new Map()
+    for (const p of [...winA.posts, ...winB.posts]) {
+      if (p?.id)
+        byId.set(String(p.id), p)
+    }
+    const merged = Array.from(byId.values()).sort((a, b) => Number(a.id) - Number(b.id))
+    const fromNum = Number(navigateFrom)
+    const nextNewer = merged.find(p => Number(p.id) > fromNum)
+    const nextOlder = [...merged].reverse().find(p => Number(p.id) < fromNum)
+    const hasNewer = merged.length ? (Number(merged[merged.length - 1].id) > fromNum) : false
+    const hasOlder = merged.length ? (Number(merged[0].id) < fromNum) : false
+    const picked = direction === 'newer' ? nextNewer : nextOlder
+    const channelInfo = {
+      posts: picked ? [picked] : [],
+      title: winB.$('.tgme_channel_info_header_title')?.text(),
+      description: winB.$('.tgme_channel_info_description')?.text(),
+      descriptionHTML: modifyHTMLContent(winB.$, winB.$('.tgme_channel_info_description'))?.html(),
+      avatar: winB.$('.tgme_page_photo_image img')?.attr('src'),
+      availableTags: Object.keys(buildTagIndex(merged)).sort((a, b) => a.localeCompare(b)),
+      tagIndex: buildTagIndex(merged),
+      selectedTag: normalizedTag,
+      embedsEnabled,
+      hasNewer,
+      hasOlder,
+    }
+    cache.set(cacheKey, channelInfo)
+    return JSON.parse(JSON.stringify(channelInfo))
+  }
 
   const url = id ? `https://${host}/${channel}/${id}?embed=1&mode=tme` : `https://${host}/s/${channel}`
   const headers = Object.fromEntries(Astro.request.headers)
@@ -855,6 +939,8 @@ export async function getChannelInfo(
     tagIndex,
     selectedTag,
     embedsEnabled,
+    hasNewer: false,
+    hasOlder: false,
   }
 
   cache.set(cacheKey, channelInfo)
