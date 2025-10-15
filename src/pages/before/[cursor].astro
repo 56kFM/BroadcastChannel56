@@ -11,11 +11,8 @@ if (!cursor) {
 
 const channel = await getChannelInfo(Astro, {
   before: cursor,
+  limit: 1,
 })
-const singleChannel = {
-  ...channel,
-  posts: Array.isArray(channel?.posts) ? channel.posts.slice(0, 1) : [],
-}
 
 // If Telegram returns no posts for this cursor, avoid an empty page
 if (!Array.isArray(channel?.posts) || channel.posts.length === 0) {
@@ -25,4 +22,4 @@ if (!Array.isArray(channel?.posts) || channel.posts.length === 0) {
 channel.seo = { noindex: true }
 ---
 
-<List channel={singleChannel} isItem={true} paginationGap={true} />
+<List channel={channel} isItem={true} paginationGap={true} />

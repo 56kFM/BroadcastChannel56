@@ -767,13 +767,25 @@ function getPost($, item, { channel, staticProxy, index = 0, baseUrl = '/', enab
 
 const unnessaryHeaders = ['host', 'cookie', 'origin', 'referer']
 
-export async function getChannelInfo(Astro, { before = '', after = '', q = '', type = 'list', id = '', tag = '' } = {}) {
+export async function getChannelInfo(
+  Astro,
+  options = {},
+) {
+  const {
+    before = '',
+    after = '',
+    q = '',
+    type = 'list',
+    id = '',
+    tag = '',
+    limit,
+  } = options ?? {}
   const embedsEnabled = (getEnv(import.meta.env, Astro, 'ENABLE_EMBEDS') ?? 'true') !== 'false'
-  const cacheKey = JSON.stringify({ before, after, q, type, id, tag, enableEmbeds: embedsEnabled })
+  const cacheKey = JSON.stringify({ before, after, q, type, id, tag, limit, enableEmbeds: embedsEnabled })
   const cachedResult = cache.get(cacheKey)
 
   if (cachedResult) {
-    console.info('Match Cache', { before, after, q, type, id, tag })
+    console.info('Match Cache', { before, after, q, type, id, tag, limit })
     return JSON.parse(JSON.stringify(cachedResult))
   }
 
@@ -797,7 +809,7 @@ export async function getChannelInfo(Astro, { before = '', after = '', q = '', t
     }
   })
 
-  console.info('Fetching', url, { before, after, q: searchQuery, type, id, tag })
+  console.info('Fetching', url, { before, after, q: searchQuery, type, id, tag, limit })
   const html = await $fetch(url, {
     headers,
     query: {
@@ -816,21 +828,25 @@ export async function getChannelInfo(Astro, { before = '', after = '', q = '', t
     cache.set(cacheKey, post)
     return post
   }
-  const posts = (
+  const allPosts = (
     $('.tgme_channel_history  .tgme_widget_message_wrap')?.map((index, item) => {
       return getPost($, item, { channel, staticProxy, index, baseUrl, enableEmbeds: embedsEnabled })
     })?.get()?.reverse().filter(post => ['text'].includes(post.type) && post.id && post.content)
   ) ?? []
 
-  await hydrateSoundCloudEmbeds(posts, { enableEmbeds: embedsEnabled })
+  await hydrateSoundCloudEmbeds(allPosts, { enableEmbeds: embedsEnabled })
 
-  const tagIndex = buildTagIndex(posts)
+  const tagIndex = buildTagIndex(allPosts)
   const availableTags = Object.keys(tagIndex).sort((a, b) => a.localeCompare(b))
   const selectedTag = normalizedTag
-  const filteredPosts = selectedTag ? (tagIndex[selectedTag] ?? []) : posts
+  const posts = selectedTag ? (tagIndex[selectedTag] ?? []) : allPosts
+
+  const limitedPosts = (Number.isInteger(limit) && limit > 0 && Array.isArray(posts))
+    ? posts.slice(0, limit)
+    : posts
 
   const channelInfo = {
-    posts: filteredPosts,
+    posts: limitedPosts,
     title: $('.tgme_channel_info_header_title')?.text(),
     description: $('.tgme_channel_info_description')?.text(),
     descriptionHTML: modifyHTMLContent($, $('.tgme_channel_info_description'))?.html(),
