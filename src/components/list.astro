@@ -14,8 +14,9 @@ const {
 } = Astro.props
 
 const posts = Array.isArray(channel?.posts) ? channel.posts : []
-const beforeCursor = posts.at(-1)?.id
-const afterCursor = posts[0]?.id
+// posts array is in chronological order after parsing (oldest -> newest)
+const beforeCursor = posts[0]?.id // older than current window
+const afterCursor = posts.at(-1)?.id // newer than current window
 
 const normalizedBasePath = paginationBasePath ? `${paginationBasePath.replace(/^\/+/u, '').replace(/\/+$/u, '')}/` : ''
 const encodeCursor = (cursor: unknown) => encodeURIComponent(String(cursor))

@@ -635,3 +635,10 @@ hr {
     font-size: var(--font-size-base);
   }
 }
+/* Emojis should render "neutral": no italics, no text glow. */
+.item-content-container .text-box .emoji {
+  font-style: normal;
+  text-shadow: none;
+  filter: none;
+  font-synthesis: none; /* avoid faux italic on color emoji fonts */
+}
