@@ -270,3 +270,50 @@
 .content .image-preview-wrap img {
   aspect-ratio: auto !important;
 }
+/* === Telegram Link Preview: square thumbnail at left; text at right (scoped) === */
+/* This targets only Telegram preview cards and never touches normal post images. */
+.tgme_widget_message_link_preview {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    "thumb title"
+    "thumb desc"
+    "thumb site";
+  gap: var(--space-sm);
+  align-items: start;
+}
+
+/* Map preview parts to grid areas (class names come from Telegram markup) */
+.tgme_widget_message_link_preview .link_preview_title       { grid-area: title; }
+.tgme_widget_message_link_preview .link_preview_description { grid-area: desc;  }
+.tgme_widget_message_link_preview .link_preview_site_name   { grid-area: site;  opacity: .85; }
+
+/* Square thumbnail cell at the left */
+.tgme_widget_message_link_preview .link_preview_image {
+  grid-area: thumb;
+
+  /* size of the square thumbnail; tweak if you want */
+  --tlp-thumb: 96px;
+  inline-size: var(--tlp-thumb);
+  block-size: var(--tlp-thumb);
+
+  /* If this element uses background-image (Telegram often does), fill the box */
+  background-size: 100% 100%;
+  background-position: 50% 50%;
+  background-repeat: no-repeat;
+
+  /* If the element contains an <img>, ensure it fills the square (warp OK, no crop) */
+  display: grid; /* lets the child img stretch */
+  place-items: center;
+}
+
+.tgme_widget_message_link_preview .link_preview_image img {
+  inline-size: 100%;
+  block-size: 100%;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;   /* warp allowed so nothing is cut off */
+  display: block;
+}
+
+/* Important: DO NOT style generic .image or global img here. Keep it scoped. */
