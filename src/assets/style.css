@@ -349,9 +349,9 @@ a.site-title:focus-visible {
 }
 
 .attachment-box img {
-  inline-size: auto;
-  max-inline-size: 100%;
-  block-size: auto;
+  width: auto;
+  max-width: 100%;
+  height: auto;
   object-fit: contain;
   border: 1px solid var(--border-color);
   border-radius: 0;
