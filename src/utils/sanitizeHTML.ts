@@ -34,8 +34,7 @@ const allowedAttributes: Record<string, string[]> = {
   video: ['src','controls','preload','poster','width','height'],
   span: ['class'],
   iframe: [
-    'src','srcdoc','allow','allowfullscreen','referrerpolicy','sandbox',
-    'width','height','title','data-preserve-embed','class','id','loading','frameborder',
+    'src','title','width','height','allow','allowfullscreen','loading','referrerpolicy','frameborder',
   ],
 }
 
