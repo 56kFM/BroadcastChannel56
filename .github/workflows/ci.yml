@@ -40,4 +40,5 @@ jobs:
         run: pnpm test:unit
         env:
           OFFLINE_BUILD: 'true'
+          COLUMNS: '80'
         continue-on-error: true
