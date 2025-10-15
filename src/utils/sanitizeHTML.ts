@@ -38,9 +38,7 @@ const allowedAttributes: Record<string, string[]> = {
   ],
 }
 
-export function sanitizeHTML(dirty: string, opts?: { baseUrl?: string }): string {
-  const baseOrigin = safeOrigin(opts?.baseUrl)
-
+export const sanitizeHTML = (dirty: string): string => {
   return sanitizeHtml(dirty, {
     /* SANITIZER_ALLOWLIST_START */
     // Ensure span[class] is allowed for emoji wrapper
@@ -68,26 +66,11 @@ export function sanitizeHTML(dirty: string, opts?: { baseUrl?: string }): string
     transformTags: {
       a: (tagName: any, attribs: any) => {
         const href = attribs?.href
-        const isAbsolute = typeof href === 'string' && /^https?:\/\//i.test(href)
-        const isInternal =
-          typeof href === 'string' &&
-          (href.startsWith('/') ||
-            href.startsWith('./') ||
-            href.startsWith('../') ||
-            (isAbsolute && baseOrigin && (() => {
-              try {
-                return new URL(href).origin === baseOrigin
-              } catch {
-                return false
-              }
-            })()))
-
-        if (isAbsolute && !isInternal) {
+        const isHttp = typeof href === 'string' && /^https?:\/\//i.test(href)
+        if (isHttp) {
           attribs.target = attribs.target || '_blank'
-          const tokens = new Set([...(attribs.rel?.split(/\s+/u) ?? []), 'noopener', 'noreferrer', 'nofollow', 'ugc'])
+          const tokens = new Set([...(attribs.rel?.split(/\s+/u) ?? []), 'noopener','noreferrer','nofollow','ugc'])
           ;(attribs as any).rel = Array.from(tokens).join(' ')
-        } else {
-          if (attribs.target === '_blank') delete (attribs as any).target
         }
         return { tagName, attribs }
       },
@@ -119,15 +102,6 @@ export function sanitizeHTML(dirty: string, opts?: { baseUrl?: string }): string
       return false
     },
   })
-}
-
-function safeOrigin(url?: string) {
-  if (!url) return undefined
-  try {
-    return new URL(url).origin
-  } catch {
-    return undefined
-  }
 }
 
 export default sanitizeHTML
