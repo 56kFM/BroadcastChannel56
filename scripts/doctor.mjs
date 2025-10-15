@@ -37,6 +37,40 @@ const lighthouseWorkflow = read('.github/workflows/lighthouse.yml')
 const telegramIndex = read('src/lib/telegram/index.js')
 const packageJson = safeJsonParse(read('package.json'))
 
+const cssFiles = [
+  'src/assets/style.css',
+  'src/assets/item.css',
+]
+
+const cssTests = [
+  { name: 'global .image sizing', re: /^\s*\.image\s*\{[^}]*?(inline-size|width|block-size|height)\s*:/ims },
+  { name: 'grid on masonry wrapper', re: /\.content\s*\.image-list-container\s*\{[^}]*display\s*:\s*grid/ims },
+  {
+    name: 'forced square on containers',
+    re: /\.(image-preview-link|attachment-box\s+\.image-box|image-list-container\s*>\s*\*)\s*\{[^}]*aspect-ratio\s*:/ims,
+  },
+]
+
+const cssFailures = []
+for (const file of cssFiles) {
+  const content = read(file)
+  if (!content)
+    continue
+  for (const test of cssTests) {
+    if (test.re.test(content))
+      cssFailures.push(`${file}: ${test.name}`)
+  }
+}
+
+if (cssFailures.length) {
+  console.error('CSS doctor failed on:')
+  for (const failure of cssFailures)
+    console.error(` - ${failure}`)
+}
+else {
+  console.log('CSS doctor: OK')
+}
+
 const expectedIframeHosts = [
   'www.youtube.com',
   'youtube.com',
@@ -116,6 +150,7 @@ const checks = {
     /isItem\s*&&\s*structuredDataJson/.test(read('src/components/item.astro')),
   robots_route_exists: exists('src/pages/robots.txt.ts'),
   sitemap_route_exists: exists('src/pages/sitemap.xml.ts'),
+  css_doctor_clean: cssFailures.length === 0,
 }
 
 const ok = Object.values(checks).every(Boolean)
