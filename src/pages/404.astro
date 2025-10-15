@@ -1,6 +1,5 @@
 ---
 import Layout from '../layouts/base.astro'
-import Header from '../components/header.astro'
 
 const { BASE_URL } = Astro.locals
 const title = 'Page not found'
@@ -13,15 +12,8 @@ const description = 'The page you’re looking for does not exist.'
 </Fragment>
 
 <Layout id="main-container">
-  <slot name="header">
-    {
-      /*
-      Header is optional; it’s null-safe for channel props.
-      We pass only a suffix so the bar reads “• 404” in your site’s style.
-    */
-    }
-    <Header titleSuffix="• 404" />
-  </slot>
+  <Fragment slot="header"></Fragment>
+  <Fragment slot="footer"></Fragment>
 
   <section style="min-height:60vh;display:grid;place-items:center;padding:2rem">
     <div style="text-align:center">
