@@ -2,11 +2,7 @@
 import List from '../components/list.astro'
 import { getChannelInfo } from '../lib/telegram'
 
-const channel = await getChannelInfo(Astro)
-const singleChannel = {
-  ...channel,
-  posts: Array.isArray(channel?.posts) ? channel.posts.slice(0, 1) : [],
-}
+const channel = await getChannelInfo(Astro, { limit: 1 })
 ---
 
-<List channel={singleChannel} isItem={true} after={false} paginationGap={true} />
+<List channel={channel} isItem={true} after={false} paginationGap={true} />
