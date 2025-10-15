@@ -292,9 +292,6 @@ try {
 const renderedFallbackHtml = fallbackSafeHtml ? applyBandcampFix(fallbackSafeHtml) : ''
 const renderedContentHtml = safeContent ? applyBandcampFix(safeContent) : ''
 
-const imageItems = mediaList.filter((m) => m?.kind === 'image')
-const otherMedia = mediaList.filter((m) => m?.kind !== 'image')
-
 const datetimeSource = typeof post?.datetime === 'string' ? post.datetime : ''
 const datetime = (datetimeSource ? dayjs(datetimeSource) : dayjs()).tz(timezone)
 const timeago = datetime.isBefore(dayjs().subtract(1, 'w')) ? datetime.format('HH:mm · ll · ddd') : datetime.fromNow()
@@ -382,47 +379,10 @@ const structuredDataJson = structuredData ? JSON.stringify(structuredData) : ''
           <Fragment>
             {renderedContentHtml.length > 0 && <div class={`text-box content`} set:html={renderedContentHtml} />}
 
-            {imageItems.length > 0 && (
-              <>
-                {/* Hero first image */}
-                <div class="media-hero">
-                  {(() => {
-                    const first = imageItems[0]
-                    return first ? (
-                      <a
-                        class="image-preview-link image-preview-wrap"
-                        href={first.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <img src={first.url} alt={first.caption || 'Image'} loading="eager" decoding="async" />
-                      </a>
-                    ) : null
-                  })()}
-                </div>
-
-                {/* Masonry for remaining images */}
-                {imageItems.length > 1 && (
-                  <div class="image-list-container media-masonry">
-                    {imageItems.slice(1).map(({ url, caption }, i) => (
-                      <a
-                        class="image-preview-link image-preview-wrap"
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <img src={url} alt={caption || 'Image'} loading="lazy" decoding="async" />
-                      </a>
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
-
-            {otherMedia.length > 0 && (
+            {mediaList.length > 0 && (
               <div class="media-list">
-                {otherMedia.map((m) => (
-                  <Media {...m} />
+                {mediaList.map((media, _index) => (
+                  <Media {...media} />
                 ))}
               </div>
             )}
