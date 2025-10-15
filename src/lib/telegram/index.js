@@ -652,28 +652,6 @@ function modifyHTMLContent($, content, { index, baseUrl } = {}) {
   const $content = $(content)
 
   $content.find('.emoji')?.removeAttr('style')
-  const $pv = $content.find('.tgme_widget_message_link_preview')
-  if ($pv?.length) {
-    // Mark previews with no usable thumbnail so CSS can collapse the left column
-    const $thumb = $pv.find('.link_preview_image, .link_preview_photo, .image').first()
-    let hasThumb = false
-
-    if ($thumb.length) {
-      // Case 1: direct or nested <img> with a real src
-      const $img = $thumb.is('img') ? $thumb : $thumb.find('img').first()
-      if ($img.length && ($img.attr('src') || '').trim())
-        hasThumb = true
-
-      // Case 2: inline background-image style
-      const style = `${$thumb.attr('style') || ''}`
-      if (/background(?:-image)?\s*:\s*url\(/i.test(style))
-        hasThumb = true
-    }
-
-    if (!hasThumb) {
-      $pv.addClass('no-thumb')
-    }
-  }
   $content.find('a')?.each((_index, a) => {
     const anchor = $(a)
     const anchorText = anchor?.text() ?? ''
