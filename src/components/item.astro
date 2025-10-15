@@ -10,7 +10,6 @@ import Embed from './Embed.astro'
 import Media from './Media.astro'
 
 const { BASE_URL } = Astro.locals
-const BASE = Astro.locals.SITE_URL || Astro.locals.SITE_ORIGIN
 const { post, isItem } = Astro.props
 
 const postIdPathSegment = encodeURIComponent(String(post?.id))
@@ -37,7 +36,7 @@ const envEmbedsEnabled = envEmbedSetting === undefined ? true : envEmbedSetting 
 
 type MediaItem = {
   kind?: string
-  url: string
+  url?: string
   mime?: string
   caption?: string
 }
@@ -113,7 +112,7 @@ let shouldRenderEmbeds = false
 let renderError: Error | null = null
 
 const fallbackText = typeof post?.text === 'string' ? post.text : ''
-const fallbackSafeHtml = fallbackText ? sanitizeHTML(fallbackText, { baseUrl: BASE }) : ''
+const fallbackSafeHtml = fallbackText ? sanitizeHTML(fallbackText) : ''
 const fallbackLinkUrls = new Set<string>()
 
 const allowListedUrl = (value: string | undefined | null) => {
@@ -153,7 +152,7 @@ let structuredData = null
 
 try {
   const rawContent = typeof post?.content === 'string' ? post.content : ''
-  const sanitizedContent = rawContent ? sanitizeHTML(rawContent, { baseUrl: BASE }) : ''
+  const sanitizedContent = rawContent ? sanitizeHTML(rawContent) : ''
   safeContent = sanitizedContent
   mediaList = Array.isArray(post?.media)
     ? post.media.filter((media: any): media is MediaItem =>
@@ -292,12 +291,6 @@ try {
 const renderedFallbackHtml = fallbackSafeHtml ? applyBandcampFix(fallbackSafeHtml) : ''
 const renderedContentHtml = safeContent ? applyBandcampFix(safeContent) : ''
 
-const imageItems = mediaList.filter((media) => media?.kind === 'image')
-const otherMedia = mediaList.filter((media) => media?.kind !== 'image')
-const hasGalleryImages = imageItems.length >= 2
-const singleImageItem = imageItems.length === 1 ? imageItems[0] : null
-const shouldRenderMedia = hasGalleryImages || Boolean(singleImageItem) || otherMedia.length > 0
-
 const datetimeSource = typeof post?.datetime === 'string' ? post.datetime : ''
 const datetime = (datetimeSource ? dayjs(datetimeSource) : dayjs()).tz(timezone)
 const timeago = datetime.isBefore(dayjs().subtract(1, 'w')) ? datetime.format('HH:mm · ll · ddd') : datetime.fromNow()
@@ -385,26 +378,9 @@ const structuredDataJson = structuredData ? JSON.stringify(structuredData) : ''
           <Fragment>
             {renderedContentHtml.length > 0 && <div class={`text-box content`} set:html={renderedContentHtml} />}
 
-            {shouldRenderMedia && (
+            {mediaList.length > 0 && (
               <div class="media-list">
-                {hasGalleryImages && (
-                  <div class={`image-list-container masonry`}>
-                    {imageItems.map(({ url, caption }, i) => (
-                      <a
-                        class="image-preview-link image-preview-wrap"
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <img src={url} alt={caption || 'Image'} loading={i > 15 ? 'eager' : 'lazy'} decoding="async" />
-                      </a>
-                    ))}
-                  </div>
-                )}
-
-                {singleImageItem && <Media {...singleImageItem} />}
-
-                {otherMedia.map((media, _index) => (
+                {mediaList.map((media, _index) => (
                   <Media {...media} />
                 ))}
               </div>

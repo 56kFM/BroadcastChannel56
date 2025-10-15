@@ -25,16 +25,6 @@
   color: var(--secondary-color);
 }
 
-.media-image {
-  margin: 0;
-}
-
-.media-image figcaption {
-  margin: var(--space-2xs) 0 0;
-  font-size: var(--font-size-sm);
-  color: var(--secondary-color);
-}
-
 .embed-list {
   display: grid;
   gap: clamp(var(--space-sm), 3vw, var(--space-lg));
