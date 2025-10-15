@@ -3,11 +3,12 @@ import { getSocialLinks } from '../lib/social-links'
 import { sanitizeHTML } from '../utils/sanitizeHTML'
 
 const { channel } = Astro.props
+const BASE = Astro?.locals?.SITE_URL || Astro?.locals?.SITE_ORIGIN
 
 const socialLinks = getSocialLinks(import.meta.env, Astro)
 const hasSocialLinks = socialLinks.length > 0
 const hasDescription = typeof channel?.descriptionHTML === 'string' && channel.descriptionHTML.length > 0
-const safeDescription = hasDescription ? sanitizeHTML(channel?.descriptionHTML ?? '') : ''
+const safeDescription = hasDescription ? sanitizeHTML(channel?.descriptionHTML ?? '', { baseUrl: BASE }) : ''
 const shouldRenderFooter = hasDescription || hasSocialLinks
 ---
 
