@@ -1,0 +1,36 @@
+name: Lighthouse
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+    branches: [ "**" ]
+
+jobs:
+  lhci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - run: pnpm install
+      - run: pnpm run build
+
+      # Run Lighthouse CI against the built dist (no preview server required)
+      - name: Run Lighthouse CI
+        run: pnpm dlx @lhci/cli@0.12.0 autorun --config=.lighthouserc.json
+        continue-on-error: true
+
+      # Upload LHCI reports even if assertions warn
+      - name: Upload LHCI artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lhci-reports
+          path: ".lighthouseci"

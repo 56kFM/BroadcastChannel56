@@ -7,8 +7,9 @@ import { SEO } from 'astro-seo'
 import { getEnv } from '../lib/env'
 import backToTopIcon from '../assets/back-to-top.svg'
 import Footer from '../components/footer.astro'
+import { computeCanonical } from '../utils/canonical'
 
-const { SITE_URL, RSS_URL, BASE_URL } = Astro.locals
+const { RSS_URL } = Astro.locals
 const { channel } = Astro.props
 
 const locale = getEnv(import.meta.env, Astro, 'LOCALE')
@@ -16,13 +17,8 @@ const locale = getEnv(import.meta.env, Astro, 'LOCALE')
 const seo = channel?.seo
 const channelTitle = channel?.title ?? ''
 const seoDescription = seo?.text ?? channel?.description
-const requestPathname = Astro.url.pathname.replace(/\/$/, '')
-const basePathname = BASE_URL.replace(/\/$/, '') || '/'
-const relativePathname =
-  basePathname !== '/' && requestPathname.startsWith(basePathname)
-    ? requestPathname.slice(basePathname.length)
-    : requestPathname
-const canonical = new URL(relativePathname.replace(/^\//, ''), SITE_URL).href
+const canonical = computeCanonical(Astro.locals.SITE_ORIGIN, Astro.url.pathname)
+const siteName = Astro.site?.hostname || new URL(Astro.locals.SITE_URL || Astro.locals.SITE_ORIGIN).hostname
 
 const { origin } = new URL(canonical)
 const github = getEnv(import.meta.env, Astro, 'GITHUB')
@@ -70,6 +66,11 @@ const hasHeader = Astro.slots.has('header')
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#0d0d0d" />
     <link rel="alternate" type="application/rss+xml" title={channel?.title} href={RSS_URL} />
+    <link rel="canonical" href={canonical} />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={siteName} />
+    <meta property="og:url" content={canonical} />
+    <meta name="twitter:card" content="summary_large_image" />
     <style is:inline>
       @view-transition {
         navigation: auto;
