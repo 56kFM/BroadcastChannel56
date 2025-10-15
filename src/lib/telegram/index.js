@@ -6,6 +6,7 @@ import prism from '../prism'
 import { getEnv } from '../env'
 import { extractTagsFromText, normalizeTag } from '../tags'
 import { canonicalizeUrl } from '../../utils/canonicalizeUrl'
+import { pickAdjacentPost, toNumericId } from './navigation'
 
 const cache = new LRUCache({
   ttl: 1000 * 60 * 5, // 5 minutes
@@ -867,8 +868,6 @@ export async function getChannelInfo(
     }
   }
 
-  const toNumericId = value => Number.parseInt(String(value ?? ''), 10)
-
   async function fetchPage({ before: beforeCursor, after: afterCursor, searchQuery }) {
     const url = id ? `https://${host}/${channel}/${id}?embed=1&mode=tme` : `https://${host}/s/${channel}`
     const headers = Object.fromEntries(Astro.request.headers)
@@ -907,13 +906,7 @@ export async function getChannelInfo(
       return JSON.parse(JSON.stringify(cachedResult))
     }
 
-    const rawPivot = toNumericId(options.navigateFrom)
     const directionHint = options.direction
-    const pivotId = Number.isFinite(rawPivot)
-      ? rawPivot
-      : directionHint === 'older'
-        ? Number.POSITIVE_INFINITY
-        : Number.NEGATIVE_INFINITY
     const searchQuery = options.q || (normalizedTag ? `#${normalizedTag}` : '') || undefined
 
     const windows = []
@@ -942,37 +935,11 @@ export async function getChannelInfo(
     const availableTags = Object.keys(tagIndex).sort((a, b) => a.localeCompare(b))
     const filteredPosts = normalizedTag ? tagIndex[normalizedTag] ?? [] : mergedPosts
 
-    let pickedPost = null
-    if (directionHint === 'newer') {
-      pickedPost = filteredPosts.find((post) => {
-        const value = toNumericId(post?.id)
-        return Number.isFinite(value) && value > pivotId
-      }) ?? null
-    }
-    else {
-      for (let i = filteredPosts.length - 1; i >= 0; i -= 1) {
-        const candidate = filteredPosts[i]
-        const value = toNumericId(candidate?.id)
-        if (Number.isFinite(value) && value < pivotId) {
-          pickedPost = candidate
-          break
-        }
-      }
-    }
-
-    const pickedNumeric = toNumericId(pickedPost?.id)
-    const hasNewer = pickedPost
-      ? filteredPosts.some((post) => {
-        const value = toNumericId(post?.id)
-        return Number.isFinite(value) && Number.isFinite(pickedNumeric) && value > pickedNumeric
-      })
-      : false
-    const hasOlder = pickedPost
-      ? filteredPosts.some((post) => {
-        const value = toNumericId(post?.id)
-        return Number.isFinite(value) && Number.isFinite(pickedNumeric) && value < pickedNumeric
-      })
-      : false
+    const { pickedPost, hasNewer, hasOlder } = pickAdjacentPost({
+      posts: filteredPosts,
+      navigateFrom: options.navigateFrom,
+      direction: directionHint,
+    })
 
     await hydrateSoundCloudEmbeds(pickedPost ? [pickedPost] : [], { enableEmbeds: embedsEnabled })
 
