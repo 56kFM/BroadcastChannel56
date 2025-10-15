@@ -21,12 +21,14 @@ jobs:
 
       - run: pnpm install
       - run: pnpm run build
-        env: { OFFLINE_BUILD: 'true' }
+        env:
+          OFFLINE_BUILD: 'true'
 
       # Run Lighthouse CI against the built dist (no preview server required)
       - name: Run Lighthouse CI
         run: pnpm dlx @lhci/cli@0.12.0 autorun --config=.lighthouserc.json
-        env: { OFFLINE_BUILD: 'true' }
+        env:
+          OFFLINE_BUILD: 'true'
         continue-on-error: true
 
       # Upload LHCI reports even if assertions warn

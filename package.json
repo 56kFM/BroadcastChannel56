@@ -15,7 +15,10 @@
     "postinstall": "node scripts/postinstall.cjs",
     "check": "pnpm exec astro check",
     "typecheck": "pnpm exec tsc --noEmit",
-    "test:canary": "node tests/canaries/sanitize-canary.mjs"
+    "test:canary": "node tests/canaries/sanitize-canary.mjs",
+    "doctor": "node ./scripts/doctor.mjs",
+    "receipt": "node ./scripts/receipt.mjs",
+    "snapshot": "node ./scripts/snapshot.mjs"
   },
   "dependencies": {
     "@astrojs/rss": "^4.0.12",
