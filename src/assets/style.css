@@ -537,6 +537,11 @@ a.site-title:focus-visible {
     box-shadow var(--transition-fast);
 }
 
+.pages-container :where(.page):link,
+.pages-container :where(.page):visited {
+  color: var(--secondary-color);
+}
+
 .pages-container :where(.page):hover,
 .pages-container :where(.page):focus-visible {
   color: var(--foreground-color);
