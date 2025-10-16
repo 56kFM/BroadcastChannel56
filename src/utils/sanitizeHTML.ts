@@ -50,7 +50,7 @@ const allowedAttributes: Record<string, string[]> = {
 allowedAttributes.div = Array.from(new Set([...(allowedAttributes.div ?? []), 'class','id']))
 allowedAttributes.span = Array.from(new Set([...(allowedAttributes.span ?? []), 'class','id']))
 allowedAttributes.img = Array.from(new Set([...(allowedAttributes.img ?? []), 'class']))
-allowedAttributes.a = Array.from(new Set([...(allowedAttributes.a ?? []), 'class', 'target', 'rel']))
+allowedAttributes.a = Array.from(new Set([...(allowedAttributes.a ?? []), 'class']))
 
 export function sanitizeHTML(html: string, opts?: { baseUrl?: string }) {
   const baseOrigin = safeOrigin(opts?.baseUrl)
