@@ -149,21 +149,37 @@ audio {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 2rem;
-  min-height: 2rem;
-  padding: 0.25rem 0.375rem;
-  border-radius: 0.5rem;
-  border: 1px solid var(--border-subtle);
+  color: var(--secondary-color);
+  background: var(--glass-60);
+  padding-inline: var(--space-md);
+  padding-block: var(--space-3xs);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--slate-24);
   text-decoration: none;
+  transition:
+    transform var(--transition-base),
+    color var(--transition-fast),
+    border-color var(--transition-fast),
+    background var(--transition-fast),
+    box-shadow var(--transition-fast);
 }
 
 .page:hover {
+  transform: translateY(calc(-1 * var(--space-3xs)));
+  color: var(--foreground-color);
   border-color: var(--border-strong);
-  box-shadow: var(--shadow-xs);
+  background: var(--border-soft);
+  box-shadow: var(--shadow-sm);
 }
 
 .page:focus-visible {
-  outline: 2px solid var(--focus-ring-color);
-  outline-offset: 2px;
-  box-shadow: none;
+  outline: none;
+  box-shadow: 0 0 0 0.2rem var(--focus-ring-color);
 }
+
+.page:active {
+  transform: translateY(var(--space-3xs));
+}
+
