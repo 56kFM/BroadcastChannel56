@@ -250,6 +250,8 @@
 
 /* hero-first on odd counts (markup toggles .image-list-odd) */
 .image-list-container.image-list-odd > :first-child {
+  display: block;
+  width: 100%;
   column-span: all;
   margin-bottom: var(--space-sm);
 }
