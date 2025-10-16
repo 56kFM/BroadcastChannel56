@@ -183,3 +183,25 @@ audio {
   transform: translateY(var(--space-3xs));
 }
 
+/* Back-to-Top: normalize icon sizing exactly like .social-icon */
+#back-to-top .back-to-top__icon {
+  inline-size: 1.125rem;   /* icon box size */
+  block-size: 1.125rem;
+  display: inline-flex;
+}
+#back-to-top .back-to-top__icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Ensure filters/hover colorization apply to inline SVG too */
+#back-to-top svg,
+#back-to-top img {
+  filter: var(--icon-secondary-filter);
+  transition: filter var(--transition-fast);
+}
+#back-to-top:hover svg,
+#back-to-top:hover img {
+  filter: var(--icon-hover-filter);
+}

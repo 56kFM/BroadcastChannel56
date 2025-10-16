@@ -5,7 +5,7 @@ import '../assets/global.css'
 import '../styles/cls-guards.css'
 import { SEO } from 'astro-seo'
 import { getEnv } from '../lib/env'
-import backToTopIcon from '../assets/back-to-top.svg'
+import backToTopIcon from '../assets/back-to-top.svg?raw'
 import Footer from '../components/footer.astro'
 import { computeCanonical } from '../utils/canonical'
 
@@ -107,7 +107,7 @@ const hasFooter = Astro.slots.has('footer')
       {hasFooter ? <slot name="footer" /> : <Footer channel={channel} />}
     </div>
     <a href="#wrapper" id="back-to-top" aria-label="Back to top">
-      <img {...backToTopIcon} alt="Back to Top" loading="lazy" decoding="async" />
+      <span class="back-to-top__icon" aria-hidden="true" set:html={backToTopIcon} />
     </a>
     <script is:inline>
       const backToTop = document.getElementById('back-to-top')
