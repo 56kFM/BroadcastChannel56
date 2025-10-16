@@ -479,9 +479,41 @@ function isDirectDownloadUrl(rawUrl) {
 }
 
 function getLinkPreview($, item, { staticProxy, index, embeds }) {
-  const link = $(item).find('.tgme_widget_message_link_preview')
-  const title = $(item).find('.link_preview_title')?.text() || $(item).find('.link_preview_site_name')?.text()
-  const description = $(item).find('.link_preview_description')?.text()
+  const $content = $(item)
+  const link = $content.find('.tgme_widget_message_link_preview')
+  const title = $content.find('.link_preview_title')?.text() || $content.find('.link_preview_site_name')?.text()
+  const description = $content.find('.link_preview_description')?.text()
+
+  // Normalize Telegram link previews: tag has/no-thumb and drop empty thumb node
+  $content.find('.tgme_widget_message_link_preview').each((_i, el) => {
+    const $pv = $(el)
+    const $thumb = $pv.find('.link_preview_image, .link_preview_photo, .image').first()
+
+    let hasThumb = false
+    if ($thumb.length) {
+      // Case 1: <img> or <picture><img>
+      const $img = $thumb.is('img') ? $thumb : $thumb.find('img, picture img').first()
+      if ($img.length && (($img.attr('src') || '').trim().length > 0)) {
+        hasThumb = true
+      }
+
+      // Case 2: inline style background-image (Telegram often does this)
+      if (!hasThumb) {
+        const style = ($thumb.attr('style') || '') + ''
+        if (/background(?:-image)?\s*:\s*url\(/i.test(style)) {
+          hasThumb = true
+        }
+      }
+    }
+
+    if (hasThumb) {
+      $pv.addClass('tlp-has-thumb')
+    }
+    else {
+      $pv.addClass('tlp-no-thumb')
+      $thumb.remove() // ensure no empty column can be reserved
+    }
+  })
 
   const href = link?.attr('href')?.trim()
   const canonicalHref = canonicalizeUrl(href)
@@ -525,7 +557,7 @@ function getLinkPreview($, item, { staticProxy, index, embeds }) {
       })
   }
 
-  const image = $(item).find('.link_preview_image')
+  const image = $content.find('.link_preview_image')
   const src = image?.attr('style')?.match(/url\(["'](.*?)["']/i)?.[1]
   const imageSrc = src ? staticProxy + src : ''
   image?.replaceWith(`<img class="link_preview_image" alt="${title}" src="${imageSrc}" loading="${index > 15 ? 'eager' : 'lazy'}" decoding="async" />`)

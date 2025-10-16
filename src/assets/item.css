@@ -270,103 +270,71 @@
 .content .image-preview-wrap img {
   aspect-ratio: auto !important;
 }
-/* === Telegram Link Preview (scoped) — text decides height; thumbnail fills column === */
-.tgme_widget_message_link_preview {
-  display: grid;
-  grid-template-columns: var(--tlp-thumb-w, 96px) 1fr;  /* fixed thumb column, flexible text column */
-  grid-template-rows: auto auto;                        /* two text rows: title + description */
-  grid-template-areas:
-    "thumb title"
-    "thumb desc";
-  gap: var(--space-sm);
-  align-items: start;                                    /* rows sized by text, not image */
-}
 
-/* Map preview parts (Telegram’s classes) to the grid areas */
+/* === TLP: two states (no client JS). Server sets .tlp-has-thumb / .tlp-no-thumb === */
+
+/* Map text areas (applies in both states) */
 .tgme_widget_message_link_preview .link_preview_title       { grid-area: title; }
 .tgme_widget_message_link_preview .link_preview_description { grid-area: desc;  }
 
-/* Remove the redundant bottom row entirely (even when accent_color is present) */
+/* Remove the redundant bottom row entirely */
 .tgme_widget_message_link_preview .link_preview_site_name,
 .tgme_widget_message_link_preview .link_preview_site_name.accent_color {
   display: none !important;
 }
 
-/* Thumbnail column: fill available height, but never define it */
-.tgme_widget_message_link_preview .link_preview_image,
-.tgme_widget_message_link_preview .link_preview_photo,
-.tgme_widget_message_link_preview .image {
+/* HAS THUMB: two-column grid */
+.tgme_widget_message_link_preview.tlp-has-thumb {
+  display: grid;
+  grid-template-columns: var(--tlp-thumb-w, 96px) 1fr;
+  grid-template-areas:
+    "thumb title"
+    "thumb desc";
+  grid-auto-rows: auto;
+  gap: var(--space-sm);
+  align-items: start;
+}
+
+/* Thumb fills its column, warped (no crop), but text defines overall height */
+.tgme_widget_message_link_preview.tlp-has-thumb .link_preview_image,
+.tgme_widget_message_link_preview.tlp-has-thumb .link_preview_photo,
+.tgme_widget_message_link_preview.tlp-has-thumb .image {
   grid-area: thumb;
-  position: relative;              /* key: allows absolutely-positioned child to fill without affecting track sizing */
+  position: relative;
   inline-size: 100%;
-  block-size: 100%;                /* fills the grid area’s height (which is defined by text rows) */
+  block-size: 100%;
   min-inline-size: 0;
   min-block-size: 0;
   align-self: stretch;
-  overflow: hidden;                /* ensure the image can’t expand the grid by intrinsic size */
-
-  /* If Telegram paints via background-image, warp-fill without crop */
   background-size: 100% 100%;
   background-position: 50% 50%;
   background-repeat: no-repeat;
+  display: grid;
+  place-items: stretch;
 }
 
-/* Child <img>/picture — fill both axes, show entire image, warp if needed, no crop */
-.tgme_widget_message_link_preview .link_preview_image > img,
-.tgme_widget_message_link_preview .link_preview_photo > img,
-.tgme_widget_message_link_preview .image > img,
-.tgme_widget_message_link_preview .link_preview_image picture img {
+.tgme_widget_message_link_preview.tlp-has-thumb .link_preview_image > img,
+.tgme_widget_message_link_preview.tlp-has-thumb .link_preview_photo > img,
+.tgme_widget_message_link_preview.tlp-has-thumb .image > img,
+.tgme_widget_message_link_preview.tlp-has-thumb .link_preview_image picture img {
   position: absolute;
-  inset: 0;                        /* pin to container box */
+  inset: 0;
   width: 100%;
   height: 100%;
   inline-size: 100%;
   block-size: 100%;
-  object-fit: fill;                /* show whole image, warp to fill both axes */
+  object-fit: fill;  /* show whole image, warp to fill */
   display: block;
 }
 
-/* === TLP ONLY — collapse left column when no usable image (CSS-only) === */
-
-/* A) Hide truly empty thumb nodes (no children). This catches the common "blank" case. */
-.tgme_widget_message_link_preview .link_preview_image:empty,
-.tgme_widget_message_link_preview .link_preview_photo:empty,
-.tgme_widget_message_link_preview .image:empty {
-  display: none !important;
-}
-
-/* B) If there is NO <img> and NO inline background-image on the thumb container,
-      collapse the grid to a single text column (no blank gap). */
-.tgme_widget_message_link_preview:not(
-  :has(.link_preview_image img, .link_preview_photo img, .image img,
-       .link_preview_image[style*="background-image"],
-       .link_preview_photo[style*="background-image"],
-       .image[style*="background-image"])
-) {
-  grid-template-columns: 1fr !important;
-  grid-template-rows: auto auto;
+/* NO THUMB: single-column (no blank space) */
+.tgme_widget_message_link_preview.tlp-no-thumb {
+  display: grid;
+  grid-template-columns: 1fr;
   grid-template-areas:
     "title"
     "desc";
-}
-
-.tgme_widget_message_link_preview:not(
-  :has(.link_preview_image img, .link_preview_photo img, .image img,
-       .link_preview_image[style*="background-image"],
-       .link_preview_photo[style*="background-image"],
-       .image[style*="background-image"])
-) .link_preview_image,
-.tgme_widget_message_link_preview:not(
-  :has(.link_preview_image img, .link_preview_photo img, .image img,
-       .link_preview_image[style*="background-image"],
-       .link_preview_photo[style*="background-image"],
-       .image[style*="background-image"])
-) .link_preview_photo,
-.tgme_widget_message_link_preview:not(
-  :has(.link_preview_image img, .link_preview_photo img, .image img,
-       .link_preview_image[style*="background-image"],
-       .link_preview_photo[style*="background-image"],
-       .image[style*="background-image"])
-) .image {
-  display: none !important;
+  grid-auto-rows: auto;
+  gap: var(--space-sm);
+  align-items: start;
 }
