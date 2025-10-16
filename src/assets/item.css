@@ -240,12 +240,16 @@
 @media (min-width: 64rem) { .image-list-container { column-count: 2; } }
 @media (min-width: 90rem) { .image-list-container { column-count: 3; } }
 
-.image-list-container > .image-preview-link,
 .image-list-container > * {
   display: inline-block;
   break-inside: avoid;
   margin-bottom: var(--space-sm);
   /* do NOT set aspect-ratio here */
+}
+
+.image-list-container > .image-preview-link {
+  display: block;
+  width: 100%;
 }
 
 /* hero-first on odd counts (markup toggles .image-list-odd) */
@@ -266,6 +270,7 @@
   height: auto !important;
   object-fit: contain !important;
   display: block;
+  margin-inline: auto;
 }
 
 /* safety: post images must use natural aspect even if a CLS rule slips in */
