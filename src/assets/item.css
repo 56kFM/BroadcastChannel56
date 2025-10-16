@@ -236,9 +236,9 @@
 
 /* PR-A: columns-based masonry (natural heights) */
 .image-list-container { column-count: 1; column-gap: var(--space-sm); }
-@media (min-width: 40rem) { .image-list-container { column-count: 2; } }
-@media (min-width: 64rem) { .image-list-container { column-count: 3; } }
-@media (min-width: 90rem) { .image-list-container { column-count: 4; } }
+@media (min-width: 40rem) { .image-list-container { column-count: 1; } }
+@media (min-width: 64rem) { .image-list-container { column-count: 2; } }
+@media (min-width: 90rem) { .image-list-container { column-count: 3; } }
 
 .image-list-container > .image-preview-link,
 .image-list-container > * {
