@@ -81,6 +81,16 @@ export function sanitizeHTML(html: string, opts?: { baseUrl?: string }) {
 
     transformTags: {
       a: (tagName: any, attribs: any) => {
+        // Preserve new-tab behavior for image preview anchors only
+        {
+          const cls = String((attribs as any)?.class || (attribs as any)?.className || '')
+          if (/\bimage-preview-link\b/.test(cls)) {
+            attribs.target = '_blank'
+            const tokens = new Set([...(attribs.rel?.split(/\s+/u) ?? []), 'noopener', 'noreferrer'])
+            ;(attribs as any).rel = Array.from(tokens).join(' ')
+            return { tagName, attribs }
+          }
+        }
         const href = attribs?.href
         const isAbsolute = typeof href === 'string' && /^https?:\/\//i.test(href)
         const isInternal =
