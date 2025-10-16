@@ -1,6 +1,6 @@
 ---
 import Layout from '../layouts/base.astro'
-import Hero from '../assets/404.png'
+import four from '../assets/four.png?url'
 
 const { BASE_URL } = Astro.locals
 const title = 'Page not found'
@@ -19,7 +19,7 @@ const description = 'The page you’re looking for does not exist.'
   <section style="min-height:60vh;display:grid;place-items:center;padding:2rem">
     <div style="text-align:center">
       <img
-        src={Hero}
+        src={four}
         alt="404 Not Found"
         decoding="async"
         loading="lazy"
