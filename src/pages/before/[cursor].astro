@@ -36,9 +36,20 @@ if (post?.embeds) {
 }
 const preconnectHosts = Array.from(used)
 
-// If Telegram returns no posts for this cursor, avoid an empty page
+// If Telegram returns no posts for this cursor, wrap to the NEWEST post
 if (!Array.isArray(channel?.posts) || channel.posts.length === 0) {
-  return Astro.redirect('/')
+  const { BASE_URL } = Astro.locals
+  const base = typeof BASE_URL === 'string' && BASE_URL.length > 0 ? BASE_URL : '/'
+
+  // Fetch a fresh newest window and pick the max id
+  const latest = await getChannelInfo(Astro)
+  const ids = Array.isArray(latest?.posts)
+    ? latest.posts.map((p) => Number.parseInt(p?.id ?? '', 10)).filter((n) => Number.isFinite(n))
+    : []
+
+  const newestId = ids.length ? String(Math.max(...ids)) : ''
+  const target = newestId ? `${base}posts/${encodeURIComponent(newestId)}` : base
+  return Astro.redirect(target)
 }
 
 channel.seo = { noindex: true }

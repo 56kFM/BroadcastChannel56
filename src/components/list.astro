@@ -94,26 +94,10 @@ const paginationClassList = {
   </div>
 
   <div class:list={paginationClassList}>
-    {
-      hasOlderPosts ? (
-        <a href={beforeHref} title="before" class="page" aria-label="Go to older post" rel="prev">
-          ◀◀
-        </a>
-      ) : (
-        <span class="page-placeholder">&nbsp;</span>
-      )
-    }
+    <a href={beforeHref} title="before" class="page" aria-label="Go to older post" rel="prev"> ◀◀ </a>
 
     <div class="pages-info"></div>
-    {
-      hasNewerPosts ? (
-        <a href={afterHref} title="after" class="page" aria-label="Go to newer post" rel="next">
-          ▶▶
-        </a>
-      ) : (
-        <span class="page-placeholder">&nbsp;</span>
-      )
-    }
+    <a href={afterHref} title="after" class="page" aria-label="Go to newer post" rel="next"> ▶▶ </a>
   </div>
 
   <Fragment slot="head">
