@@ -13,6 +13,23 @@ if (!cursor) {
 const channel = await getChannelInfo(Astro, { navigateFrom: cursor, direction: 'newer' })
 /* CURSOR_FETCH_END */
 
+// If Telegram returns no posts for this cursor, wrap to the OLDEST post
+if (!Array.isArray(channel?.posts) || channel.posts.length === 0) {
+  const { BASE_URL } = Astro.locals
+  const base = typeof BASE_URL === 'string' && BASE_URL.length > 0 ? BASE_URL : '/'
+
+  // Ask Telegram for the earliest window by anchoring near the beginning.
+  // Using after:'1' yields the earliest page; pick the min id from that.
+  const earliest = await getChannelInfo(Astro, { after: '1' })
+  const ids = Array.isArray(earliest?.posts)
+    ? earliest.posts.map((p) => Number.parseInt(p?.id ?? '', 10)).filter((n) => Number.isFinite(n))
+    : []
+
+  const oldestId = ids.length ? String(Math.min(...ids)) : ''
+  const target = oldestId ? `${base}posts/${encodeURIComponent(oldestId)}` : base
+  return Astro.redirect(target)
+}
+
 const post = channel?.posts?.[0]
 const KIND_HOSTS: Record<string, string[]> = {
   youtube: ['www.youtube-nocookie.com', 'www.youtube.com', 'youtu.be'],
@@ -35,11 +52,6 @@ if (post?.embeds) {
   }
 }
 const preconnectHosts = Array.from(used)
-
-// Guard: never show an empty page
-if (!Array.isArray(channel?.posts) || channel.posts.length === 0) {
-  return Astro.redirect('/')
-}
 
 channel.seo = {
   noindex: true,
