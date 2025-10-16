@@ -62,7 +62,7 @@
     height: auto;
     border-radius: 0;
     border: 1px solid rgba(148, 163, 184, 0.2);
-    box-shadow: var(--shadow-sm);
+    box-shadow: none;
     align-self: flex-start;
   }
 
@@ -344,4 +344,26 @@
   grid-auto-rows: auto;
   gap: var(--space-sm);
   align-items: start;
+}
+
+/* Ensure videos/iframes in the text box participate in layout and size responsively */
+.text-box.content iframe,
+.text-box.content video {
+  display: block;                 /* take up a block row so following text flows correctly */
+  inline-size: 100%;
+  max-inline-size: 100%;
+  block-size: auto;
+  aspect-ratio: auto;           /* responsive height based on width; adjust if needed */
+  margin-block: var(--space-sm);  /* breathing room above/below the player */
+}
+
+/* Defensive: make sure the text container can expand around embeds */
+.item .content,
+.text-box.content {
+  overflow: visible;
+}
+
+/* Optional polish: remove stray iframe borders */
+.text-box.content iframe {
+  border: 0;
 }

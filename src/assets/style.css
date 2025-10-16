@@ -501,6 +501,15 @@ a.site-title:focus-visible {
   flex-wrap: wrap;
 }
 
+/* Indent outer edges of the pagination buttons without changing container width */
+.pages-container > .page:first-of-type {
+  margin-inline-start: var(--space-xl); /* tweak: --space-2xs / --space-xs / --space-md */
+}
+
+.pages-container > .page:last-of-type {
+  margin-inline-end: var(--space-xl);
+}
+
 #main-container > .pages-container {
   margin-block-start: var(--items-gap);
   margin-block-end: 0;
